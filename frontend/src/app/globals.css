@@ -1,0 +1,164 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --sidebar-width: 256px;
+  --header-height: 64px;
+  --bg-950: #05070d;
+  --bg-900: #0b0f17;
+  --bg-800: #111827;
+  --bg-700: #1f2937;
+  --neon-blue:   #38bdf8;
+  --neon-purple: #a78bfa;
+  --neon-cyan:   #22d3ee;
+  --neon-green:  #4ade80;
+  --neon-pink:   #f472b6;
+  --neon-orange: #fb923c;
+}
+
+* {
+  box-sizing: border-box;
+  padding: 0;
+  margin: 0;
+}
+
+html, body {
+  max-width: 100vw;
+  overflow-x: hidden;
+  font-family: 'Inter', system-ui, sans-serif;
+}
+
+body {
+  background-color: #05070d;
+  color: #f1f5f9;
+}
+
+/* ─── Scrollbar ─────────────────────────────────────── */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: #0b0f17; }
+::-webkit-scrollbar-thumb { background: #1f2937; border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: #374151; }
+
+/* ─── Dark Glass Cards ──────────────────────────────── */
+@layer components {
+
+  .card-dark {
+    @apply rounded-xl border border-white/[0.06] bg-dark-900 p-5;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.04);
+  }
+
+  .card-glow-blue {
+    @apply card-dark;
+    border-color: rgba(56,189,248,0.25);
+    box-shadow: 0 0 20px rgba(56,189,248,0.12), 0 4px 24px rgba(0,0,0,0.4), inset 0 1px 0 rgba(56,189,248,0.06);
+  }
+
+  .card-glow-purple {
+    @apply card-dark;
+    border-color: rgba(167,139,250,0.25);
+    box-shadow: 0 0 20px rgba(167,139,250,0.12), 0 4px 24px rgba(0,0,0,0.4), inset 0 1px 0 rgba(167,139,250,0.06);
+  }
+
+  .card-glow-cyan {
+    @apply card-dark;
+    border-color: rgba(34,211,238,0.25);
+    box-shadow: 0 0 20px rgba(34,211,238,0.12), 0 4px 24px rgba(0,0,0,0.4), inset 0 1px 0 rgba(34,211,238,0.06);
+  }
+
+  .card-glow-green {
+    @apply card-dark;
+    border-color: rgba(74,222,128,0.25);
+    box-shadow: 0 0 20px rgba(74,222,128,0.12), 0 4px 24px rgba(0,0,0,0.4), inset 0 1px 0 rgba(74,222,128,0.06);
+  }
+
+  .card-glow-pink {
+    @apply card-dark;
+    border-color: rgba(244,114,182,0.25);
+    box-shadow: 0 0 20px rgba(244,114,182,0.12), 0 4px 24px rgba(0,0,0,0.4), inset 0 1px 0 rgba(244,114,182,0.06);
+  }
+
+  /* ─── Badges ──────────────────────────────────────── */
+  .badge-dark {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+  }
+
+  .badge-blue   { @apply badge-dark bg-sky-500/15 text-sky-400 border border-sky-500/20; }
+  .badge-purple { @apply badge-dark bg-violet-500/15 text-violet-400 border border-violet-500/20; }
+  .badge-green  { @apply badge-dark bg-emerald-500/15 text-emerald-400 border border-emerald-500/20; }
+  .badge-red    { @apply badge-dark bg-red-500/15 text-red-400 border border-red-500/20; }
+  .badge-yellow { @apply badge-dark bg-amber-500/15 text-amber-400 border border-amber-500/20; }
+  .badge-gray   { @apply badge-dark bg-slate-500/15 text-slate-400 border border-slate-500/20; }
+  .badge-cyan   { @apply badge-dark bg-cyan-500/15 text-cyan-400 border border-cyan-500/20; }
+  .badge-orange { @apply badge-dark bg-orange-500/15 text-orange-400 border border-orange-500/20; }
+
+  /* ─── Buttons ─────────────────────────────────────── */
+  .btn-primary {
+    @apply bg-violet-600 hover:bg-violet-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition-all disabled:opacity-40 disabled:cursor-not-allowed;
+    box-shadow: 0 0 12px rgba(139,92,246,0.3);
+  }
+  .btn-primary:hover {
+    box-shadow: 0 0 20px rgba(139,92,246,0.5);
+  }
+
+  .btn-secondary {
+    @apply bg-dark-700 hover:bg-dark-600 text-gray-300 hover:text-white px-4 py-2 rounded-lg text-sm font-medium transition-all border border-white/[0.08];
+  }
+
+  .btn-ghost {
+    @apply text-gray-400 hover:text-white hover:bg-white/[0.06] px-3 py-2 rounded-lg text-sm font-medium transition-all;
+  }
+
+  /* ─── Inputs ──────────────────────────────────────── */
+  .input-dark {
+    @apply w-full bg-dark-800 border border-white/[0.08] rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-violet-500/50 focus:border-violet-500/50 transition-all;
+  }
+
+  /* ─── Table ───────────────────────────────────────── */
+  .th-dark {
+    @apply text-xs font-semibold text-gray-500 uppercase tracking-wider px-4 py-3;
+    background: rgba(17,24,39,0.8);
+  }
+
+  .td-dark {
+    @apply px-4 py-3 text-sm text-gray-300 border-b border-white/[0.04];
+  }
+
+  /* ─── Nav item ────────────────────────────────────── */
+  .nav-item {
+    @apply w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all text-left;
+  }
+
+  .nav-item-active {
+    @apply nav-item text-white;
+    background: linear-gradient(135deg, rgba(139,92,246,0.25) 0%, rgba(59,130,246,0.15) 100%);
+    border: 1px solid rgba(167,139,250,0.3);
+    box-shadow: 0 0 16px rgba(139,92,246,0.2), inset 0 1px 0 rgba(167,139,250,0.1);
+  }
+
+  .nav-item-inactive {
+    @apply nav-item text-gray-500 hover:text-gray-300 hover:bg-white/[0.04] border border-transparent;
+  }
+}
+
+/* ─── Neon text effects ──────────────────────────────── */
+.text-neon-blue   { color: #38bdf8; text-shadow: 0 0 10px rgba(56,189,248,0.5); }
+.text-neon-purple { color: #a78bfa; text-shadow: 0 0 10px rgba(167,139,250,0.5); }
+.text-neon-cyan   { color: #22d3ee; text-shadow: 0 0 10px rgba(34,211,238,0.5); }
+.text-neon-green  { color: #4ade80; text-shadow: 0 0 10px rgba(74,222,128,0.5); }
+.text-neon-pink   { color: #f472b6; text-shadow: 0 0 10px rgba(244,114,182,0.5); }
+
+/* ─── Glow divider ───────────────────────────────────── */
+.divider-glow {
+  border: none;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(167,139,250,0.2), transparent);
+}
+
+/* ─── Smooth panel transitions ───────────────────────── */
+.transition-panel { transition: all 0.2s ease-in-out; }
+
+/* ─── Avatar ring ────────────────────────────────────── */
+.avatar-ring {
+  box-shadow: 0 0 0 2px rgba(167,139,250,0.5), 0 0 12px rgba(167,139,250,0.2);
+}

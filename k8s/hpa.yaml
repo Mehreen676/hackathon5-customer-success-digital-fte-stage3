@@ -1,0 +1,117 @@
+# ============================================================
+# Nexora Customer Success Digital FTE — HorizontalPodAutoscaler
+# Auto-scales API and message-processor pods on CPU/memory load
+#
+# Requires: metrics-server in the cluster
+#   kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml
+# ============================================================
+
+---
+# ── API HPA ───────────────────────────────────────────────────
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: nexora-api-hpa
+  namespace: nexora
+  labels:
+    app: nexora-cs-fte
+    component: api
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: nexora-api
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 60    # scale up when avg CPU > 60%
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 75
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 60
+      policies:
+        - type: Pods
+          value: 2
+          periodSeconds: 60         # add max 2 pods per minute
+    scaleDown:
+      stabilizationWindowSeconds: 300  # wait 5 min before scaling down
+      policies:
+        - type: Pods
+          value: 1
+          periodSeconds: 120        # remove max 1 pod per 2 min
+
+---
+# ── Message Processor HPA ─────────────────────────────────────
+# NOTE: For Kafka consumers, KEDA (Kubernetes Event-Driven Autoscaler)
+# is preferred — scale on consumer lag rather than CPU.
+# This HPA provides a CPU-based fallback.
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: nexora-worker-hpa
+  namespace: nexora
+  labels:
+    app: nexora-cs-fte
+    component: message-processor
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: nexora-message-processor
+  minReplicas: 2
+  maxReplicas: 12          # bounded by max Kafka partitions (12 for whatsapp)
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 80
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 30
+      policies:
+        - type: Pods
+          value: 2
+          periodSeconds: 60
+    scaleDown:
+      stabilizationWindowSeconds: 180
+      policies:
+        - type: Pods
+          value: 1
+          periodSeconds: 120
+
+# ── KEDA ScaledObject (recommended for Kafka — comment out HPA above)
+# apiVersion: keda.sh/v1alpha1
+# kind: ScaledObject
+# metadata:
+#   name: nexora-worker-keda
+#   namespace: nexora
+# spec:
+#   scaleTargetRef:
+#     name: nexora-message-processor
+#   minReplicaCount: 2
+#   maxReplicaCount: 12
+#   triggers:
+#     - type: kafka
+#       metadata:
+#         bootstrapServers: nexora-kafka:9092
+#         consumerGroup: nexora-message-processors
+#         topic: gmail_incoming
+#         lagThreshold: "50"

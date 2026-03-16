@@ -1,0 +1,93 @@
+# ============================================================
+# Nexora Customer Success Digital FTE — Services
+# Internal ClusterIP services for all components
+# ============================================================
+
+---
+# ── API Service (internal) ─────────────────────────────────────
+apiVersion: v1
+kind: Service
+metadata:
+  name: nexora-api
+  namespace: nexora
+  labels:
+    app: nexora-cs-fte
+    component: api
+spec:
+  type: ClusterIP
+  selector:
+    app: nexora-cs-fte
+    component: api
+  ports:
+    - name: http
+      port: 80
+      targetPort: 8000
+      protocol: TCP
+
+---
+# ── API Service (NodePort for local k8s testing) ───────────────
+# Uncomment when using minikube / kind without an ingress controller
+# apiVersion: v1
+# kind: Service
+# metadata:
+#   name: nexora-api-nodeport
+#   namespace: nexora
+# spec:
+#   type: NodePort
+#   selector:
+#     app: nexora-cs-fte
+#     component: api
+#   ports:
+#     - name: http
+#       port: 80
+#       targetPort: 8000
+#       nodePort: 30800
+
+---
+# ── PostgreSQL Service ─────────────────────────────────────────
+# Used when running PostgreSQL inside the cluster (dev/staging only)
+# In production, use an external managed DB (AWS RDS, Cloud SQL)
+apiVersion: v1
+kind: Service
+metadata:
+  name: nexora-postgres
+  namespace: nexora
+  labels:
+    app: nexora-cs-fte
+    component: postgres
+spec:
+  type: ClusterIP
+  selector:
+    app: nexora-cs-fte
+    component: postgres
+  ports:
+    - name: postgres
+      port: 5432
+      targetPort: 5432
+      protocol: TCP
+
+---
+# ── Kafka Service ──────────────────────────────────────────────
+# Internal access only — workers connect via this service
+apiVersion: v1
+kind: Service
+metadata:
+  name: nexora-kafka
+  namespace: nexora
+  labels:
+    app: nexora-cs-fte
+    component: kafka
+spec:
+  type: ClusterIP
+  selector:
+    app: nexora-cs-fte
+    component: kafka
+  ports:
+    - name: broker
+      port: 9092
+      targetPort: 9092
+      protocol: TCP
+    - name: internal
+      port: 29092
+      targetPort: 29092
+      protocol: TCP

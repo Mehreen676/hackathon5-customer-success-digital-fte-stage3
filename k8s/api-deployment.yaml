@@ -1,0 +1,101 @@
+# ============================================================
+# Nexora Customer Success Digital FTE — API Deployment
+# FastAPI backend — horizontally scalable
+# ============================================================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nexora-api
+  namespace: nexora
+  labels:
+    app: nexora-cs-fte
+    component: api
+    stage: "3"
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: nexora-cs-fte
+      component: api
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0        # zero-downtime rollout
+  template:
+    metadata:
+      labels:
+        app: nexora-cs-fte
+        component: api
+        stage: "3"
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/path: "/metrics"
+        prometheus.io/port: "8000"
+    spec:
+      serviceAccountName: nexora-api
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1001
+        fsGroup: 1001
+
+      # Ensure pods spread across nodes
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: DoNotSchedule
+          labelSelector:
+            matchLabels:
+              component: api
+
+      containers:
+        - name: api
+          image: nexora-cs-fte:3.0.0
+          imagePullPolicy: IfNotPresent
+          command: ["./startup.sh"]
+          ports:
+            - containerPort: 8000
+              name: http
+              protocol: TCP
+
+          envFrom:
+            - configMapRef:
+                name: nexora-config
+            - secretRef:
+                name: nexora-secrets
+
+          resources:
+            requests:
+              cpu: "250m"
+              memory: "256Mi"
+            limits:
+              cpu: "1000m"
+              memory: "512Mi"
+
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 20
+            periodSeconds: 15
+            timeoutSeconds: 5
+            failureThreshold: 3
+
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 2
+
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+
+      volumes:
+        - name: tmp
+          emptyDir: {}
+
+      terminationGracePeriodSeconds: 30

@@ -1,0 +1,205 @@
+# ============================================================
+# Nexora Customer Success Digital FTE — Docker Compose
+# Stage 3 | Full local development stack
+# ============================================================
+#
+# Services:
+#   zookeeper       — Kafka coordinator
+#   kafka           — Message broker (3 topics auto-created)
+#   postgres        — Production-grade database
+#   api             — FastAPI backend (port 8000)
+#   worker          — Message processor (Kafka → AI workflow)
+#   retry-worker    — Dead-letter retry handler
+#   frontend        — Next.js dashboard (port 3000)
+#   kafka-ui        — Kafka topic browser (port 8080)
+#
+# Start everything:
+#   docker compose up --build
+#
+# Start only the API (no Kafka):
+#   docker compose up api postgres
+# ============================================================
+
+version: "3.9"
+
+# ── Shared environment for all Python services ────────────────
+x-python-env: &python-env
+  DATABASE_URL: postgresql://nexora:nexora@postgres:5432/nexora_support
+  KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+  LLM_PROVIDER: ${LLM_PROVIDER:-anthropic}
+  LLM_MODEL: ${LLM_MODEL:-}
+  ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+  OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+  GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+  LOG_LEVEL: ${LOG_LEVEL:-INFO}
+
+services:
+
+  # ── Zookeeper ──────────────────────────────────────────────
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.6.0
+    hostname: zookeeper
+    container_name: nexora-zookeeper
+    restart: unless-stopped
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    healthcheck:
+      test: echo ruok | nc localhost 2181 | grep imok
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── Kafka broker ───────────────────────────────────────────
+  kafka:
+    image: confluentinc/cp-kafka:7.6.0
+    hostname: kafka
+    container_name: nexora-kafka
+    restart: unless-stopped
+    depends_on:
+      zookeeper:
+        condition: service_healthy
+    ports:
+      - "9092:9092"     # external (host → container)
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      # Pre-create Nexora topics with correct partition counts
+      KAFKA_CREATE_TOPICS: >
+        gmail_incoming:6:1,
+        whatsapp_incoming:12:1,
+        webform_incoming:3:1,
+        agent_responses:6:1,
+        escalations:3:1,
+        dead_letter:1:1
+    healthcheck:
+      test: kafka-broker-api-versions --bootstrap-server localhost:29092
+      interval: 15s
+      timeout: 10s
+      retries: 10
+
+  # ── PostgreSQL ─────────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    container_name: nexora-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: nexora
+      POSTGRES_PASSWORD: nexora
+      POSTGRES_DB: nexora_support
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: pg_isready -U nexora -d nexora_support
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── FastAPI backend ────────────────────────────────────────
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runtime
+    container_name: nexora-api
+    restart: unless-stopped
+    command: ./startup.sh
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    ports:
+      - "8000:8000"
+    environment:
+      <<: *python-env
+    volumes:
+      - ./backend:/app/backend  # live-reload in dev (remove in prod)
+      - ./context:/app/context
+    healthcheck:
+      test: curl -f http://localhost:8000/health || exit 1
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
+  # ── Message processor worker ───────────────────────────────
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runtime
+    container_name: nexora-worker
+    restart: unless-stopped
+    command: python -m workers.message_processor
+    depends_on:
+      api:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    environment:
+      <<: *python-env
+      KAFKA_CONSUMER_GROUP: nexora-message-processors
+      WORKER_CONCURRENCY: "2"
+    volumes:
+      - ./backend:/app/backend
+      - ./workers:/app/workers
+
+  # ── Retry / dead-letter worker ─────────────────────────────
+  retry-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runtime
+    container_name: nexora-retry-worker
+    restart: unless-stopped
+    command: python -m workers.retry_worker
+    depends_on:
+      kafka:
+        condition: service_healthy
+    environment:
+      <<: *python-env
+      RETRY_CONSUMER_GROUP: nexora-retry-workers
+      RETRY_MAX_ATTEMPTS: "3"
+      RETRY_BASE_BACKOFF_S: "5"
+    volumes:
+      - ./backend:/app/backend
+      - ./workers:/app/workers
+
+  # ── Next.js frontend ───────────────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.frontend
+    container_name: nexora-frontend
+    restart: unless-stopped
+    depends_on:
+      - api
+    ports:
+      - "3000:3000"
+    environment:
+      NEXT_PUBLIC_API_URL: http://api:8000
+
+  # ── Kafka UI (development only) ────────────────────────────
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    container_name: nexora-kafka-ui
+    restart: unless-stopped
+    depends_on:
+      kafka:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
+    environment:
+      KAFKA_CLUSTERS_0_NAME: nexora-local
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:29092
+      KAFKA_CLUSTERS_0_ZOOKEEPER: zookeeper:2181
+
+volumes:
+  postgres_data:

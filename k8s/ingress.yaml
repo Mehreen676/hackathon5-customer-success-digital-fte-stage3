@@ -1,0 +1,61 @@
+# ============================================================
+# Nexora Customer Success Digital FTE — Ingress
+# Requires: nginx ingress controller + cert-manager for TLS
+#
+# Install nginx ingress (Helm):
+#   helm install ingress-nginx ingress-nginx/ingress-nginx
+#
+# Install cert-manager:
+#   helm install cert-manager jetstack/cert-manager --set installCRDs=true
+# ============================================================
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: nexora-ingress
+  namespace: nexora
+  labels:
+    app: nexora-cs-fte
+    stage: "3"
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "60"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "60"
+    # Rate limiting — prevent abuse
+    nginx.ingress.kubernetes.io/limit-rps: "100"
+    nginx.ingress.kubernetes.io/limit-connections: "20"
+    # TLS managed by cert-manager
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    # CORS (handled by FastAPI middleware, disable here)
+    nginx.ingress.kubernetes.io/enable-cors: "false"
+spec:
+  tls:
+    - hosts:
+        - api.nexora.io
+        - dashboard.nexora.io
+      secretName: nexora-tls-secret
+
+  rules:
+    # ── FastAPI backend ───────────────────────────────────────
+    - host: api.nexora.io
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: nexora-api
+                port:
+                  number: 80
+
+    # ── Next.js frontend (if deployed to k8s) ────────────────
+    - host: dashboard.nexora.io
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: nexora-frontend
+                port:
+                  number: 3000

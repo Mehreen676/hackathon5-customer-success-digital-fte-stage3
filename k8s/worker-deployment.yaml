@@ -1,0 +1,144 @@
+# ============================================================
+# Nexora Customer Success Digital FTE — Worker Deployments
+# message-processor and retry-worker as separate Deployments
+# ============================================================
+
+---
+# ── Message Processor Worker ───────────────────────────────────
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nexora-message-processor
+  namespace: nexora
+  labels:
+    app: nexora-cs-fte
+    component: message-processor
+    stage: "3"
+spec:
+  replicas: 2              # scale to match Kafka partition count / 6
+  selector:
+    matchLabels:
+      app: nexora-cs-fte
+      component: message-processor
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+  template:
+    metadata:
+      labels:
+        app: nexora-cs-fte
+        component: message-processor
+        stage: "3"
+    spec:
+      serviceAccountName: nexora-worker
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1001
+
+      containers:
+        - name: message-processor
+          image: nexora-cs-fte:3.0.0
+          imagePullPolicy: IfNotPresent
+          command: ["python", "-m", "workers.message_processor"]
+
+          envFrom:
+            - configMapRef:
+                name: nexora-config
+            - secretRef:
+                name: nexora-secrets
+
+          resources:
+            requests:
+              cpu: "500m"          # LLM calls are CPU-light but latency-sensitive
+              memory: "384Mi"
+            limits:
+              cpu: "2000m"
+              memory: "768Mi"
+
+          livenessProbe:
+            exec:
+              command:
+                - python
+                - -c
+                - "import src.db.database; src.db.database.SessionLocal()"
+            initialDelaySeconds: 30
+            periodSeconds: 60
+            timeoutSeconds: 10
+            failureThreshold: 3
+
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+
+      volumes:
+        - name: tmp
+          emptyDir: {}
+
+      terminationGracePeriodSeconds: 60   # allow in-flight messages to finish
+
+---
+# ── Retry / Dead-Letter Worker ─────────────────────────────────
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nexora-retry-worker
+  namespace: nexora
+  labels:
+    app: nexora-cs-fte
+    component: retry-worker
+    stage: "3"
+spec:
+  replicas: 1              # single replica — dead-letter volume is low
+  selector:
+    matchLabels:
+      app: nexora-cs-fte
+      component: retry-worker
+  template:
+    metadata:
+      labels:
+        app: nexora-cs-fte
+        component: retry-worker
+        stage: "3"
+    spec:
+      serviceAccountName: nexora-worker
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1001
+
+      containers:
+        - name: retry-worker
+          image: nexora-cs-fte:3.0.0
+          imagePullPolicy: IfNotPresent
+          command: ["python", "-m", "workers.retry_worker"]
+
+          envFrom:
+            - configMapRef:
+                name: nexora-config
+            - secretRef:
+                name: nexora-secrets
+
+          env:
+            - name: RETRY_MAX_ATTEMPTS
+              value: "3"
+            - name: RETRY_BASE_BACKOFF_S
+              value: "5"
+
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "500m"
+              memory: "256Mi"
+
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+
+      volumes:
+        - name: tmp
+          emptyDir: {}
+
+      terminationGracePeriodSeconds: 30

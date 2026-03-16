@@ -1,0 +1,18 @@
+DEMO ASSET PLACEHOLDER
+======================
+File: demo.gif
+Purpose: Animated GIF showing Stage 3 system demo
+Status: Replace with actual screen recording
+
+To create the demo GIF:
+1. Start backend: uvicorn backend.main:app --reload
+2. Start frontend: cd frontend && npm run dev
+3. Open http://localhost:3000
+4. Record a screen capture showing:
+   - Dashboard overview
+   - Sending a test message via API Tester
+   - Viewing the conversation
+   - Checking the ticket created
+   - Viewing analytics
+5. Convert recording to GIF using ffmpeg:
+   ffmpeg -i demo.mp4 -r 10 -vf "scale=1200:-1" assets/demo.gif

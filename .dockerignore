@@ -1,0 +1,67 @@
+# ============================================================
+# Nexora Customer Success Digital FTE — .dockerignore
+# ============================================================
+
+# Python cache
+__pycache__/
+*.py[cod]
+*.pyo
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+htmlcov/
+.coverage
+coverage.xml
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Development databases (never copy into image)
+*.db
+*.sqlite
+*.sqlite3
+
+# Analytics persistence files (mounted at runtime)
+metrics_store.json
+usage_log.json
+
+# IDE / editor
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+
+# Git
+.git/
+.gitignore
+
+# Secrets
+.env
+.env.*
+!.env.example
+
+# Frontend build artifacts (built separately)
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+
+# Docs / specs (not needed in image)
+docs/
+specs/
+assets/
+context/
+README.md
+requirements.txt
+
+# Tests
+tests/
+
+# Kubernetes manifests
+k8s/
+
+# CI
+.github/

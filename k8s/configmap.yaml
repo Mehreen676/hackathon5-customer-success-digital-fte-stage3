@@ -1,0 +1,49 @@
+# ============================================================
+# Nexora Customer Success Digital FTE — ConfigMap
+# Non-secret runtime configuration for all pods
+# ============================================================
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nexora-config
+  namespace: nexora
+  labels:
+    app: nexora-cs-fte
+    stage: "3"
+    owner: mehreen-asghar
+data:
+  # ── Application ──────────────────────────────────────────────
+  APP_ENV: "production"
+  APP_VERSION: "3.0.0"
+  LOG_LEVEL: "INFO"
+  APP_PORT: "8000"
+  APP_HOST: "0.0.0.0"
+  UVICORN_WORKERS: "2"
+
+  # ── Kafka ────────────────────────────────────────────────────
+  KAFKA_BOOTSTRAP_SERVERS: "nexora-kafka:9092"
+  KAFKA_CONSUMER_GROUP: "nexora-message-processors"
+  RETRY_CONSUMER_GROUP: "nexora-retry-workers"
+  RETRY_MAX_ATTEMPTS: "3"
+  RETRY_BASE_BACKOFF_S: "5"
+  WORKER_CONCURRENCY: "2"
+
+  # ── Kafka topic configuration ─────────────────────────────────
+  # Partitions and retention — applied via Kafka admin client at startup
+  KAFKA_TOPIC_GMAIL_PARTITIONS: "6"
+  KAFKA_TOPIC_WHATSAPP_PARTITIONS: "12"
+  KAFKA_TOPIC_WEBFORM_PARTITIONS: "3"
+  KAFKA_TOPIC_RESPONSES_PARTITIONS: "6"
+  KAFKA_TOPIC_ESCALATIONS_PARTITIONS: "3"
+  KAFKA_TOPIC_DEAD_LETTER_PARTITIONS: "1"
+  KAFKA_RETENTION_INBOUND_MS: "604800000"    # 7 days
+  KAFKA_RETENTION_RESPONSES_MS: "259200000"  # 3 days
+  KAFKA_RETENTION_ESCALATIONS_MS: "2592000000" # 30 days
+
+  # ── LLM defaults (override with secrets for API keys) ─────────
+  LLM_PROVIDER: "anthropic"
+  LLM_MODEL: "claude-sonnet-4-6"
+
+  # ── Analytics ────────────────────────────────────────────────
+  METRICS_FILE: "/tmp/metrics_store.json"
+  USAGE_FILE: "/tmp/usage_log.json"
