@@ -56,66 +56,28 @@ A complete walkthrough of the Stage 3 Customer Success Digital FTE system — mu
 ## Stage 3 System Architecture
 
 ```mermaid
-graph LR
-    subgraph Channels["📡 Channels"]
-        A["📧 Gmail"]
-        B["📱 WhatsApp"]
-        C["🌐 Web Form"]
-    end
+flowchart TD
 
-    subgraph API["⚡ FastAPI Gateway (port 8000)"]
-        D["Channel Handlers"]
-        E["/support/* endpoints"]
-        AN["/analytics/* endpoints"]
-    end
+A[Gmail] --> B(FastAPI Gateway)
+C[WhatsApp] --> B
+D[Web Form] --> B
 
-    subgraph Agent["🤖 AI Agent Workflow"]
-        F["10-Step Pipeline"]
-        G["Escalation Engine"]
-        H["Intent Classifier"]
-    end
+B --> E[AI Agent Workflow]
 
-    subgraph LLM["🧠 AI Reasoning (Stage 3 NEW)"]
-        I["KB Search"]
-        J["LLM Client\nClaude / GPT-4o / Gemini"]
-        K["Response Generator\n3-Tier Strategy"]
-    end
+E --> F[Knowledge Base]
+E --> G[LLM Reasoning Layer]
+E --> H[MCP Tools]
 
-    subgraph MCP["🔧 MCP Tools"]
-        L["search_kb"]
-        M["create_ticket"]
-        N["escalate_issue"]
-        O["send_channel_response"]
-        P["get_customer_context"]
-    end
+H --> I[Ticket Service]
+I --> J[(SQL Database)]
 
-    subgraph Analytics["📊 Analytics (Stage 3 NEW)"]
-        Q["MetricsCollector"]
-        R["UsageTracker"]
-    end
+E --> K[Response Formatter]
 
-    subgraph DB["🗄️ Database"]
-        S[("SQLite / PostgreSQL\n7 tables")]
-    end
+K --> L[Gmail Reply]
+K --> M[WhatsApp Reply]
+K --> N[Web Form Reply]
 
-    subgraph Frontend["🎨 Next.js Dashboard (Stage 3 NEW)"]
-        T["Conversations"]
-        U["Tickets"]
-        V["Analytics Panel"]
-        W["API Tester"]
-    end
-
-    A & B & C --> D --> E --> F
-    F --> G --> H
-    H --> I
-    I -->|"KB Miss"| J --> K
-    I -->|"KB Hit"| K
-    K --> L & M & N & O & P
-    L & M & N & O & P --> S
-    F --> Q & R
-    S --> F
-    AN --> Q & R
-    Frontend -->|"/api/backend/*"| API
+J --> O[Next.js Dashboard]
 ```
 
 ---
