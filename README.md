@@ -21,20 +21,35 @@
 
 ### Stage 3 Demo Video
 
-> 📺 **[Watch the Stage 3 Demo](assets/demo-placeholder.txt)**
-> *(Replace with screen recording of the full system walkthrough)*
+A complete walkthrough of the Stage 3 Customer Success Digital FTE system — multi-channel AI support, Kafka event streaming, LLM reasoning, and the live dashboard.
+
+> 📺 **Demo Video:** `PASTE_STAGE3_VIDEO_LINK_HERE`
+> *(Replace with Loom / YouTube / Google Drive link after recording)*
 
 **Frontend Dashboard Preview:**
 
 ![Frontend Preview](assets/frontend-preview.svg)
 
-**System Architecture:**
+**Architecture Diagram:**
 
 ![Architecture Diagram](assets/stage3-architecture.svg)
 
-**Agent Reasoning Workflow:**
+**Workflow Diagram:**
 
 ![Workflow Diagram](assets/stage3-workflow.svg)
+
+---
+
+## Live Links
+
+> ⚠️ *Deploy to your preferred host (Hugging Face Spaces, Railway, Render, Vercel, etc.) then replace the placeholders below.*
+
+| Service | URL |
+|---------|-----|
+| **Frontend Live URL** | `PASTE_FRONTEND_LIVE_URL_HERE` |
+| **Backend Live URL** | `PASTE_BACKEND_LIVE_URL_HERE` |
+| **API Docs (Swagger)** | `PASTE_BACKEND_LIVE_URL_HERE/docs` |
+| **API Health Check** | `PASTE_BACKEND_LIVE_URL_HERE/health` |
 
 ---
 
@@ -875,6 +890,21 @@ Each scenario includes: symptoms → diagnosis commands → remediation steps.
 | Gmail credentials missing | MOCK mode: logs what would be sent |
 | Twilio credentials missing | MOCK mode: logs what would be sent |
 | Analytics module error | Silently skipped; core pipeline unaffected |
+
+---
+
+## Deployment Status
+
+| Component | Status | Notes |
+|-----------|--------|-------|
+| **Backend** | ✅ Ready | `uvicorn backend.main:app` — FastAPI + SQLAlchemy + multi-provider LLM |
+| **Frontend** | ✅ Ready | Next.js 14 dark dashboard — `npm run dev` or `npm run build` |
+| **Docker** | ✅ Ready | `docker compose up --build` — 8-service full stack |
+| **Kubernetes** | ✅ Ready | `k8s/` manifests with HPA, Ingress, KEDA-ready, Secrets |
+| **Kafka Workers** | ✅ Ready | `workers/message_processor.py` + `workers/retry_worker.py` |
+| **Monitoring** | ✅ Ready | Prometheus scrape config + 20 alert rules in `monitoring/` |
+| **Tests** | ✅ Ready | 384+ tests across 13 modules — `pytest tests/ -v --cov=backend` |
+| **Live Deployment** | 🔲 Pending | Insert URLs in the [Live Links](#live-links) section above after deploying |
 
 ---
 
