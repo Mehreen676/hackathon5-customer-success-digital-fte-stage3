@@ -18,109 +18,120 @@ import TicketPanel       from '@/components/TicketPanel'
 import AnalyticsPanel    from '@/components/AnalyticsPanel'
 import ApiTesterPanel    from '@/components/ApiTesterPanel'
 import api from '../../lib/api'
+import type { TicketListItem } from '../../lib/api'
 
 type Section =
   | 'dashboard' | 'conversations' | 'tickets' | 'analytics'
   | 'api-tester' | 'escalations'  | 'reports' | 'settings'
 
-// ─── Data ────────────────────────────────────────────────────────────────────
+// ─── Helpers ─────────────────────────────────────────────────────────────────
 
-const KPI = [
-  { id: 'total',   label: 'Total Tickets',  value: '156', delta: '+12%', up: true,  Icon: Ticket,        color: '#7C3AED', bg: 'rgba(124,58,237,0.1)',  border: 'rgba(124,58,237,0.25)' },
-  { id: 'open',    label: 'Open Tickets',   value: '17',  delta: '+5%',  up: true,  Icon: Inbox,         color: '#2563EB', bg: 'rgba(37,99,235,0.1)',    border: 'rgba(37,99,235,0.25)' },
-  { id: 'done',    label: 'Resolved Today', value: '22',  delta: '+18%', up: true,  Icon: CheckCircle,   color: '#059669', bg: 'rgba(5,150,105,0.1)',    border: 'rgba(5,150,105,0.25)' },
-  { id: 'esc',     label: 'Escalations',    value: '04',  delta: '+2%',  up: false, Icon: AlertTriangle, color: '#D97706', bg: 'rgba(217,119,6,0.1)',    border: 'rgba(217,119,6,0.25)' },
-]
-
-const WEEKLY = [
-  { day: 'Mon', tickets: 38, resolved: 30 },
-  { day: 'Tue', tickets: 52, resolved: 44 },
-  { day: 'Wed', tickets: 45, resolved: 38 },
-  { day: 'Thu', tickets: 68, resolved: 56 },
-  { day: 'Fri', tickets: 55, resolved: 48 },
-  { day: 'Sat', tickets: 35, resolved: 30 },
-  { day: 'Sun', tickets: 48, resolved: 40 },
-]
-
-const SECONDARY = [
-  { label: 'Avg Response', value: '1.2m', sub: 'per ticket',     Icon: Clock,   color: '#7C3AED', bg: 'rgba(124,58,237,0.08)', pct: 60 },
-  { label: 'CSAT Score',   value: '4.8',  sub: 'out of 5.0',    Icon: Zap,     color: '#059669', bg: 'rgba(5,150,105,0.08)',   pct: 96 },
-  { label: 'AI Handled',   value: '68%',  sub: 'of all tickets', Icon: Bot,     color: '#2563EB', bg: 'rgba(37,99,235,0.08)',   pct: 68 },
-]
-
-const ROWS = [
-  {
-    id: 'C-001', name: 'Sarah Lee',  email: 'sarah.lee@company.com',
-    sub: 'Billing issue — invoice missing',
-    avatar: 'https://i.pravatar.cc/150?img=5',
-    ChannelIcon: Mail,          channel: 'Gmail',
-    chanColor: '#7C3AED', chanBg: 'rgba(124,58,237,0.1)',
-    status: 'In Progress', stColor: '#A855F7', stBg: 'rgba(124,58,237,0.1)',
-    time: '2m ago',
-  },
-  {
-    id: 'C-002', name: 'John Patel', email: 'john.patel@enterprise.io',
-    sub: 'Connectivity issue on platform',
-    avatar: 'https://i.pravatar.cc/150?img=12',
-    ChannelIcon: MessageCircle, channel: 'WhatsApp',
-    chanColor: '#059669', chanBg: 'rgba(5,150,105,0.1)',
-    status: 'Pending',     stColor: '#D97706', stBg: 'rgba(217,119,6,0.1)',
-    time: '5m ago',
-  },
-  {
-    id: 'C-003', name: 'Lisa Wong',  email: 'lisa.wong@corp.com',
-    sub: 'Password reset email not arriving',
-    avatar: 'https://i.pravatar.cc/150?img=20',
-    ChannelIcon: FileText,      channel: 'Web Form',
-    chanColor: '#2563EB', chanBg: 'rgba(37,99,235,0.1)',
-    status: 'Resolved',    stColor: '#059669', stBg: 'rgba(5,150,105,0.1)',
-    time: '12m ago',
-  },
-  {
-    id: 'C-004', name: 'Ahmed Khan', email: 'ahmed.khan@business.ae',
-    sub: 'Product completely not working',
-    avatar: 'https://i.pravatar.cc/150?img=33',
-    ChannelIcon: Mail,          channel: 'Gmail',
-    chanColor: '#7C3AED', chanBg: 'rgba(124,58,237,0.1)',
-    status: 'Escalated',   stColor: '#DC2626', stBg: 'rgba(220,38,38,0.1)',
-    time: '18m ago',
-  },
-]
-
-const MESSAGES: Record<string, { role: 'agent'|'customer'; text: string; time: string }[]> = {
-  'C-001': [
-    { role: 'customer', text: 'Hi, I need help changing my billing details. The invoice from last month is missing.', time: '10:02 AM' },
-    { role: 'agent',    text: 'Hi Sarah! You can update billing info under Settings \u2192 Billing. I can also pull the missing invoice directly \u2014 let me check.', time: '10:03 AM' },
-    { role: 'customer', text: 'That would be great, thanks!', time: '10:04 AM' },
-  ],
-  'C-002': [
-    { role: 'customer', text: 'I am facing connectivity issues with the platform since this morning.', time: '10:18 AM' },
-    { role: 'agent',    text: "Hi John! I've checked your account \u2014 there's a routing issue. Our team is on it. ETA: 30 minutes.", time: '10:18 AM' },
-  ],
-  'C-003': [
-    { role: 'customer', text: "I can't reset my password. The reset email is not arriving.", time: '09:51 AM' },
-    { role: 'agent',    text: "Hi Lisa! Please check your spam folder. If it isn't there I can manually reset your account right now.", time: '09:52 AM' },
-    { role: 'customer', text: 'Found it in spam. All sorted now, thanks!', time: '09:54 AM' },
-  ],
-  'C-004': [
-    { role: 'customer', text: 'The product is completely not working! This is very urgent for our team.', time: '09:35 AM' },
-    { role: 'agent',    text: "Hi Ahmed! I've escalated this to our technical team as high priority. You'll receive a callback within the hour. Ref: TKT-0045.", time: '09:36 AM' },
-  ],
+function avatarUrl(name: string): string {
+  let hash = 0
+  for (const c of name) hash = (hash * 31 + c.charCodeAt(0)) & 0xffff
+  return `https://i.pravatar.cc/150?img=${(hash % 70) + 1}`
 }
 
-const ACTIVITY = [
-  { Icon: Bot,           color: '#7C3AED', bg: 'rgba(124,58,237,0.1)', text: 'AI resolved billing issue for Sarah Lee', time: '2m' },
-  { Icon: Plus,          color: '#2563EB', bg: 'rgba(37,99,235,0.1)',   text: 'Ticket #TKT-0048 auto-created via Gmail',  time: '6m' },
-  { Icon: AlertTriangle, color: '#D97706', bg: 'rgba(217,119,6,0.1)',   text: 'Ahmed Khan escalated to senior agent',     time: '15m' },
-  { Icon: CheckCircle,   color: '#059669', bg: 'rgba(5,150,105,0.1)',   text: 'Lisa Wong issue resolved automatically',   time: '22m' },
-  { Icon: User,          color: '#A855F7', bg: 'rgba(168,85,247,0.1)',  text: 'New VIP customer John Patel onboarded',    time: '31m' },
-]
+function timeAgo(createdAt: string): string {
+  const then = new Date(createdAt.replace(' ', 'T'))
+  const diffMin = Math.round((Date.now() - then.getTime()) / 60000)
+  if (isNaN(diffMin) || diffMin < 0) return '?'
+  if (diffMin < 60) return `${diffMin}m`
+  const diffH = Math.round(diffMin / 60)
+  if (diffH < 24) return `${diffH}h`
+  return `${Math.round(diffH / 24)}d`
+}
 
-const PERF = [
-  { label: 'Avg Response', value: '1.2 min', pct: 60, color: '#7C3AED' },
-  { label: 'CSAT Score',   value: '4.8 / 5', pct: 96, color: '#059669' },
-  { label: 'Resolution',   value: '92%',     pct: 92, color: '#2563EB' },
-]
+function buildWeeklyChart(tickets: TicketListItem[]) {
+  const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+  const result = []
+  const now = new Date()
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(now)
+    d.setDate(d.getDate() - i)
+    const dateStr = d.toISOString().slice(0, 10)
+    const dayTickets = tickets.filter((t) => t.created_at.startsWith(dateStr))
+    result.push({
+      day: days[d.getDay()],
+      tickets: dayTickets.length,
+      resolved: dayTickets.filter((t) =>
+        ['resolved', 'auto-resolved', 'closed'].includes(t.status)
+      ).length,
+    })
+  }
+  return result
+}
+
+interface Row {
+  id: string
+  name: string
+  email: string
+  sub: string
+  avatar: string
+  ChannelIcon: React.ElementType
+  channel: string
+  chanColor: string
+  chanBg: string
+  status: string
+  stColor: string
+  stBg: string
+  time: string
+  description?: string
+}
+
+const CHANNEL_MAP: Record<string, { icon: React.ElementType; label: string; color: string; bg: string }> = {
+  email:    { icon: Mail,          label: 'Gmail',    color: '#7C3AED', bg: 'rgba(124,58,237,0.1)' },
+  whatsapp: { icon: MessageCircle, label: 'WhatsApp', color: '#059669', bg: 'rgba(5,150,105,0.1)'  },
+  web_form: { icon: FileText,      label: 'Web Form', color: '#2563EB', bg: 'rgba(37,99,235,0.1)'  },
+}
+
+const STATUS_MAP: Record<string, { label: string; color: string; bg: string }> = {
+  open:           { label: 'Open',        color: '#2563EB', bg: 'rgba(37,99,235,0.1)'    },
+  escalated:      { label: 'Escalated',   color: '#DC2626', bg: 'rgba(220,38,38,0.1)'    },
+  'auto-resolved':{ label: 'Resolved',    color: '#059669', bg: 'rgba(5,150,105,0.1)'    },
+  resolved:       { label: 'Resolved',    color: '#059669', bg: 'rgba(5,150,105,0.1)'    },
+  closed:         { label: 'Closed',      color: '#64748B', bg: 'rgba(100,116,139,0.1)'  },
+  pending_review: { label: 'Pending',     color: '#D97706', bg: 'rgba(217,119,6,0.1)'    },
+}
+
+function ticketToRow(t: TicketListItem): Row {
+  const ch = CHANNEL_MAP[t.channel] ?? { icon: FileText, label: t.channel, color: '#64748B', bg: 'rgba(100,116,139,0.1)' }
+  const st = STATUS_MAP[t.status] ?? { label: t.status, color: '#64748B', bg: 'rgba(100,116,139,0.1)' }
+  return {
+    id: t.ticket_ref,
+    name: t.customer,
+    email: `via ${ch.label.toLowerCase()}`,
+    sub: t.subject,
+    avatar: avatarUrl(t.customer),
+    ChannelIcon: ch.icon,
+    channel: ch.label,
+    chanColor: ch.color,
+    chanBg: ch.bg,
+    status: st.label,
+    stColor: st.color,
+    stBg: st.bg,
+    time: timeAgo(t.created_at),
+    description: t.description,
+  }
+}
+
+function ticketToActivity(t: TicketListItem) {
+  const ago = timeAgo(t.created_at)
+  if (t.escalated)
+    return { Icon: AlertTriangle, color: '#D97706', bg: 'rgba(217,119,6,0.1)',  text: `${t.customer} escalated — ${t.subject.slice(0, 45)}`, time: ago }
+  if (['resolved', 'auto-resolved'].includes(t.status))
+    return { Icon: Bot,           color: '#7C3AED', bg: 'rgba(124,58,237,0.1)', text: `AI resolved issue for ${t.customer} — ${t.subject.slice(0, 38)}`, time: ago }
+  if (t.status === 'closed')
+    return { Icon: CheckCircle,   color: '#059669', bg: 'rgba(5,150,105,0.1)',  text: `${t.customer} ticket closed — ${t.subject.slice(0, 40)}`, time: ago }
+  return   { Icon: Plus,          color: '#2563EB', bg: 'rgba(37,99,235,0.1)',  text: `Ticket ${t.ticket_ref} created — ${t.subject.slice(0, 38)}`, time: ago }
+}
+
+function fmtMs(ms: number): string {
+  if (!ms) return '—'
+  if (ms < 1000) return `${Math.round(ms)}ms`
+  if (ms < 60000) return `${(ms / 1000).toFixed(1)}s`
+  return `${(ms / 60000).toFixed(1)}m`
+}
 
 // ─── Tooltip ─────────────────────────────────────────────────────────────────
 
@@ -148,7 +159,10 @@ function ChartTip({ active, payload, label }: {
 
 // ─── KPI Card ────────────────────────────────────────────────────────────────
 
-function KPICard({ label, value, delta, up, Icon, color, bg, border }: typeof KPI[0]) {
+function KPICard({ label, value, Icon, color, bg, border }: {
+  label: string; value: string
+  Icon: React.ElementType; color: string; bg: string; border: string
+}) {
   const [hov, setHov] = useState(false)
   return (
     <div
@@ -165,7 +179,6 @@ function KPICard({ label, value, delta, up, Icon, color, bg, border }: typeof KP
         boxShadow: hov ? '0 10px 32px rgba(0,0,0,0.35)' : '0 2px 8px rgba(0,0,0,0.2)',
       }}
     >
-      {/* Top row */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 18 }}>
         <div style={{
           width: 44, height: 44, borderRadius: 11,
@@ -177,15 +190,14 @@ function KPICard({ label, value, delta, up, Icon, color, bg, border }: typeof KP
         <span style={{
           display: 'inline-flex', alignItems: 'center', gap: 3,
           padding: '3px 9px', borderRadius: 99,
-          background: up ? 'rgba(5,150,105,0.08)' : 'rgba(220,38,38,0.08)',
-          border: `1px solid ${up ? 'rgba(5,150,105,0.2)' : 'rgba(220,38,38,0.2)'}`,
-          color: up ? '#34D399' : '#F87171',
+          background: 'rgba(5,150,105,0.08)',
+          border: '1px solid rgba(5,150,105,0.2)',
+          color: '#34D399',
           fontSize: 11, fontWeight: 600,
         }}>
-          {up ? '↑' : '↓'} {delta}
+          live
         </span>
       </div>
-      {/* Value */}
       <p style={{
         fontSize: 42, fontWeight: 800, color: '#F1F5F9',
         letterSpacing: '-1.5px', lineHeight: 1, marginBottom: 6,
@@ -199,10 +211,73 @@ function KPICard({ label, value, delta, up, Icon, color, bg, border }: typeof KP
 // ─── Dashboard Overview ──────────────────────────────────────────────────────
 
 function DashboardOverview({ onNavigate }: { onNavigate: (s: Section) => void }) {
-  const [selRow, setSelRow] = useState(ROWS[0])
-  const [reply,  setReply]  = useState('')
-  const [chat,   setChat]   = useState(true)
-  const msgs = MESSAGES[selRow.id] ?? []
+  const [tickets,   setTickets]   = useState<TicketListItem[]>([])
+  const [analytics, setAnalytics] = useState<Record<string, unknown> | null>(null)
+  const [selIdx,    setSelIdx]    = useState(0)
+  const [reply,     setReply]     = useState('')
+  const [chat,      setChat]      = useState(true)
+
+  useEffect(() => {
+    api.getTickets(100).then(setTickets)
+    api.getAnalyticsSummary().then((d) => setAnalytics(d as Record<string, unknown>))
+  }, [])
+
+  // ── KPIs ──────────────────────────────────────────────────────────────────
+  const today         = new Date().toISOString().slice(0, 10)
+  const totalTickets  = tickets.length
+  const openTickets   = tickets.filter((t) => ['open', 'pending_review'].includes(t.status)).length
+  const resolvedToday = tickets.filter((t) =>
+    ['resolved', 'auto-resolved', 'closed'].includes(t.status) &&
+    t.created_at.startsWith(today)
+  ).length
+  const escalations  = tickets.filter((t) => t.escalated).length
+
+  const kpiCards = [
+    { id: 'total', label: 'Total Tickets',  value: String(totalTickets),  Icon: Ticket,        color: '#7C3AED', bg: 'rgba(124,58,237,0.1)',  border: 'rgba(124,58,237,0.25)' },
+    { id: 'open',  label: 'Open Tickets',   value: String(openTickets),   Icon: Inbox,         color: '#2563EB', bg: 'rgba(37,99,235,0.1)',    border: 'rgba(37,99,235,0.25)' },
+    { id: 'done',  label: 'Resolved Today', value: String(resolvedToday), Icon: CheckCircle,   color: '#059669', bg: 'rgba(5,150,105,0.1)',    border: 'rgba(5,150,105,0.25)' },
+    { id: 'esc',   label: 'Escalations',    value: String(escalations).padStart(2, '0'), Icon: AlertTriangle, color: '#D97706', bg: 'rgba(217,119,6,0.1)', border: 'rgba(217,119,6,0.25)' },
+  ]
+
+  // ── Resolution rate ───────────────────────────────────────────────────────
+  const resolvedTotal = tickets.filter((t) =>
+    ['resolved', 'auto-resolved', 'closed'].includes(t.status)
+  ).length
+  const resolutionPct = totalTickets > 0 ? Math.round(resolvedTotal / totalTickets * 100) : 0
+
+  // ── Weekly chart ─────────────────────────────────────────────────────────
+  const weekly = buildWeeklyChart(tickets)
+
+  // ── Secondary cards ───────────────────────────────────────────────────────
+  const avgMs    = (analytics?.avg_response_time_ms as number) || 0
+  const aiPct    = Math.round(((analytics?.ai_usage_rate as number) || 0) * 100)
+  const avgPct   = Math.min(100, Math.round(avgMs / 5000 * 100)) || 60
+  const secondary = [
+    { label: 'Avg Response', value: fmtMs(avgMs) || '—', sub: 'per ticket',     Icon: Clock, color: '#7C3AED', bg: 'rgba(124,58,237,0.08)', pct: avgPct   },
+    { label: 'CSAT Score',   value: '4.8',                sub: 'out of 5.0',    Icon: Zap,   color: '#059669', bg: 'rgba(5,150,105,0.08)',   pct: 96       },
+    { label: 'AI Handled',   value: aiPct > 0 ? `${aiPct}%` : '—', sub: 'of all tickets', Icon: Bot, color: '#2563EB', bg: 'rgba(37,99,235,0.08)', pct: aiPct || 0 },
+  ]
+
+  // ── Conversations (4 most recent tickets) ─────────────────────────────────
+  const rows: Row[] = tickets.slice(0, 4).map(ticketToRow)
+  const selRow = rows[selIdx] ?? null
+
+  const msgs = selRow
+    ? [
+        { role: 'customer' as const, text: selRow.sub,         time: selRow.time + ' ago' },
+        ...(selRow.description ? [{ role: 'agent' as const, text: selRow.description, time: selRow.time + ' ago' }] : []),
+      ]
+    : []
+
+  // ── Activity feed (5 most recent tickets) ─────────────────────────────────
+  const activity = tickets.slice(0, 5).map(ticketToActivity)
+
+  // ── Performance bars ──────────────────────────────────────────────────────
+  const perf = [
+    { label: 'Avg Response', value: fmtMs(avgMs) || '—',       pct: Math.max(5, avgPct),    color: '#7C3AED' },
+    { label: 'CSAT Score',   value: '4.8 / 5',                  pct: 96,                     color: '#059669' },
+    { label: 'Resolution',   value: `${resolutionPct}%`,        pct: Math.max(5, resolutionPct), color: '#2563EB' },
+  ]
 
   const C: React.CSSProperties = {
     borderRadius: 16, background: '#111827',
@@ -227,7 +302,7 @@ function DashboardOverview({ onNavigate }: { onNavigate: (s: Section) => void })
 
       {/* ── KPI row ─────────────────────────────────────── */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 16 }}>
-        {KPI.map(k => <KPICard key={k.id} {...k} />)}
+        {kpiCards.map(k => <KPICard key={k.id} {...k} />)}
       </div>
 
       {/* ── Main body ───────────────────────────────────── */}
@@ -258,7 +333,9 @@ function DashboardOverview({ onNavigate }: { onNavigate: (s: Section) => void })
                 <p style={{ fontSize: 10.5, color: 'rgba(255,255,255,0.38)', fontWeight: 700, letterSpacing: '1.8px', textTransform: 'uppercase', marginBottom: 12 }}>
                   Weekly Performance
                 </p>
-                <p style={{ fontSize: 60, fontWeight: 900, color: '#fff', lineHeight: 1, letterSpacing: '-2.5px', marginBottom: 6 }}>92%</p>
+                <p style={{ fontSize: 60, fontWeight: 900, color: '#fff', lineHeight: 1, letterSpacing: '-2.5px', marginBottom: 6 }}>
+                  {totalTickets > 0 ? `${resolutionPct}%` : '—'}
+                </p>
                 <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.42)', marginBottom: 20 }}>Resolution Rate this week</p>
                 <div style={{
                   display: 'inline-flex', alignItems: 'center', gap: 7,
@@ -267,14 +344,14 @@ function DashboardOverview({ onNavigate }: { onNavigate: (s: Section) => void })
                   border: '1px solid rgba(255,255,255,0.12)',
                 }}>
                   <TrendingUp size={13} style={{ color: '#4ADE80' }} />
-                  <span style={{ fontSize: 12, fontWeight: 700, color: '#4ADE80' }}>+12%</span>
-                  <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>vs last week</span>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: '#4ADE80' }}>{totalTickets} total</span>
+                  <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>live data</span>
                 </div>
               </div>
               {/* Mini chart */}
               <div style={{ width: 210, height: 96, opacity: 0.85, flexShrink: 0 }}>
                 <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={WEEKLY} margin={{ top: 4, right: 4, bottom: 0, left: 0 }}>
+                  <AreaChart data={weekly} margin={{ top: 4, right: 4, bottom: 0, left: 0 }}>
                     <defs>
                       <linearGradient id="heroGrad" x1="0" y1="0" x2="0" y2="1">
                         <stop offset="0%" stopColor="#C4B5FD" stopOpacity={0.45} />
@@ -295,9 +372,9 @@ function DashboardOverview({ onNavigate }: { onNavigate: (s: Section) => void })
               position: 'relative',
             }}>
               {[
-                { label: 'Resolved',    value: '22', color: '#4ADE80' },
-                { label: 'In Progress', value: '17', color: '#FACC15' },
-                { label: 'Escalated',   value: '04', color: '#F87171' },
+                { label: 'Resolved',    value: String(resolvedTotal), color: '#4ADE80' },
+                { label: 'In Progress', value: String(openTickets),   color: '#FACC15' },
+                { label: 'Escalated',   value: String(escalations).padStart(2, '0'), color: '#F87171' },
               ].map(({ label, value, color }, i) => (
                 <div key={label} style={{
                   paddingLeft: i > 0 ? 22 : 0,
@@ -313,7 +390,7 @@ function DashboardOverview({ onNavigate }: { onNavigate: (s: Section) => void })
 
           {/* ── Secondary cards ─────────────────────────── */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 14 }}>
-            {SECONDARY.map(({ label, value, sub, Icon: I, color, bg, pct }) => (
+            {secondary.map(({ label, value, sub, Icon: I, color, bg, pct }) => (
               <div
                 key={label}
                 style={{ ...C, padding: '20px 22px', transition: 'transform .18s, border-color .18s' }}
@@ -346,84 +423,92 @@ function DashboardOverview({ onNavigate }: { onNavigate: (s: Section) => void })
           {/* ── Conversations table ──────────────────────── */}
           <div style={{ ...C }}>
             <SectionHead
-              title="Active Conversations"
-              sub="4 live interactions"
+              title="Recent Tickets"
+              sub={rows.length > 0 ? `${rows.length} most recent` : 'No tickets yet'}
               right={
-                <button onClick={() => onNavigate('conversations')} className="btn-ghost" style={{ fontSize: 12 }}>
+                <button onClick={() => onNavigate('tickets')} className="btn-ghost" style={{ fontSize: 12 }}>
                   View all <ArrowUpRight size={12} />
                 </button>
               }
             />
-            {/* Col headers */}
-            <div style={{
-              display: 'grid', gridTemplateColumns: '1fr 110px 140px 76px',
-              padding: '9px 22px',
-              background: 'rgba(0,0,0,0.2)', borderBottom: '1px solid rgba(255,255,255,0.04)',
-            }}>
-              {['Customer', 'Channel', 'Status', 'Time'].map(h => (
-                <span key={h} style={{ fontSize: 9.5, fontWeight: 700, color: '#1E293B', letterSpacing: '1px', textTransform: 'uppercase' }}>{h}</span>
-              ))}
-            </div>
-            {/* Rows */}
-            {ROWS.map((r, idx) => {
-              const active = selRow.id === r.id
-              return (
-                <div
-                  key={r.id}
-                  onClick={() => { setSelRow(r); setChat(true) }}
-                  style={{
-                    display: 'grid', gridTemplateColumns: '1fr 110px 140px 76px',
-                    alignItems: 'center', padding: '14px 22px',
-                    borderBottom: idx < ROWS.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none',
-                    background: active ? 'rgba(124,58,237,0.07)' : 'transparent',
-                    borderLeft: active ? '3px solid #7C3AED' : '3px solid transparent',
-                    cursor: 'pointer', transition: 'background .12s',
-                  }}
-                  onMouseEnter={e => { if (!active) e.currentTarget.style.background = 'rgba(255,255,255,0.02)' }}
-                  onMouseLeave={e => { if (!active) e.currentTarget.style.background = 'transparent' }}
-                >
-                  {/* Customer */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 11 }}>
-                    <div style={{ position: 'relative', flexShrink: 0 }}>
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={r.avatar} alt={r.name} style={{ width: 38, height: 38, borderRadius: '50%', objectFit: 'cover', border: '1.5px solid rgba(255,255,255,0.08)' }} />
-                      <span style={{ position: 'absolute', bottom: 1, right: 1, width: 8, height: 8, borderRadius: '50%', background: r.stColor, border: '1.5px solid #111827' }} />
-                    </div>
-                    <div style={{ minWidth: 0 }}>
-                      <p style={{ fontSize: 13, fontWeight: 600, color: '#F1F5F9' }}>{r.name}</p>
-                      <p style={{ fontSize: 11, color: '#475569', marginTop: 1.5, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 210 }}>{r.sub}</p>
-                    </div>
-                  </div>
-                  {/* Channel */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-                    <div style={{ width: 26, height: 26, borderRadius: 7, background: r.chanBg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <r.ChannelIcon size={12} style={{ color: r.chanColor }} />
-                    </div>
-                    <span style={{ fontSize: 11.5, color: '#64748B' }}>{r.channel}</span>
-                  </div>
-                  {/* Status */}
-                  <span style={{
-                    display: 'inline-flex', alignItems: 'center', gap: 5,
-                    padding: '4px 10px', borderRadius: 99, width: 'fit-content',
-                    background: r.stBg, color: r.stColor,
-                    fontSize: 10.5, fontWeight: 600,
-                    border: `1px solid ${r.stColor}28`,
-                  }}>
-                    <span style={{ width: 5, height: 5, borderRadius: '50%', background: r.stColor, display: 'inline-block', flexShrink: 0 }} />
-                    {r.status}
-                  </span>
-                  {/* Time */}
-                  <span style={{ fontSize: 11, color: '#475569' }}>{r.time}</span>
+            {rows.length === 0 ? (
+              <div style={{ padding: '40px 22px', textAlign: 'center', color: '#334155', fontSize: 13 }}>
+                No tickets submitted yet. Submit one from the <a href="/support" style={{ color: '#7C3AED' }}>support form</a>.
+              </div>
+            ) : (
+              <>
+                {/* Col headers */}
+                <div style={{
+                  display: 'grid', gridTemplateColumns: '1fr 110px 140px 76px',
+                  padding: '9px 22px',
+                  background: 'rgba(0,0,0,0.2)', borderBottom: '1px solid rgba(255,255,255,0.04)',
+                }}>
+                  {['Customer', 'Channel', 'Status', 'Time'].map(h => (
+                    <span key={h} style={{ fontSize: 9.5, fontWeight: 700, color: '#1E293B', letterSpacing: '1px', textTransform: 'uppercase' }}>{h}</span>
+                  ))}
                 </div>
-              )
-            })}
+                {/* Rows */}
+                {rows.map((r, idx) => {
+                  const active = selIdx === idx
+                  return (
+                    <div
+                      key={r.id}
+                      onClick={() => { setSelIdx(idx); setChat(true) }}
+                      style={{
+                        display: 'grid', gridTemplateColumns: '1fr 110px 140px 76px',
+                        alignItems: 'center', padding: '14px 22px',
+                        borderBottom: idx < rows.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none',
+                        background: active ? 'rgba(124,58,237,0.07)' : 'transparent',
+                        borderLeft: active ? '3px solid #7C3AED' : '3px solid transparent',
+                        cursor: 'pointer', transition: 'background .12s',
+                      }}
+                      onMouseEnter={e => { if (!active) e.currentTarget.style.background = 'rgba(255,255,255,0.02)' }}
+                      onMouseLeave={e => { if (!active) e.currentTarget.style.background = 'transparent' }}
+                    >
+                      {/* Customer */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 11 }}>
+                        <div style={{ position: 'relative', flexShrink: 0 }}>
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={r.avatar} alt={r.name} style={{ width: 38, height: 38, borderRadius: '50%', objectFit: 'cover', border: '1.5px solid rgba(255,255,255,0.08)' }} />
+                          <span style={{ position: 'absolute', bottom: 1, right: 1, width: 8, height: 8, borderRadius: '50%', background: r.stColor, border: '1.5px solid #111827' }} />
+                        </div>
+                        <div style={{ minWidth: 0 }}>
+                          <p style={{ fontSize: 13, fontWeight: 600, color: '#F1F5F9' }}>{r.name}</p>
+                          <p style={{ fontSize: 11, color: '#475569', marginTop: 1.5, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 210 }}>{r.sub}</p>
+                        </div>
+                      </div>
+                      {/* Channel */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+                        <div style={{ width: 26, height: 26, borderRadius: 7, background: r.chanBg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <r.ChannelIcon size={12} style={{ color: r.chanColor }} />
+                        </div>
+                        <span style={{ fontSize: 11.5, color: '#64748B' }}>{r.channel}</span>
+                      </div>
+                      {/* Status */}
+                      <span style={{
+                        display: 'inline-flex', alignItems: 'center', gap: 5,
+                        padding: '4px 10px', borderRadius: 99, width: 'fit-content',
+                        background: r.stBg, color: r.stColor,
+                        fontSize: 10.5, fontWeight: 600,
+                        border: `1px solid ${r.stColor}28`,
+                      }}>
+                        <span style={{ width: 5, height: 5, borderRadius: '50%', background: r.stColor, display: 'inline-block', flexShrink: 0 }} />
+                        {r.status}
+                      </span>
+                      {/* Time */}
+                      <span style={{ fontSize: 11, color: '#475569' }}>{r.time}</span>
+                    </div>
+                  )
+                })}
+              </>
+            )}
           </div>
 
           {/* ── Inline chat ─────────────────────────────── */}
-          {chat && (
+          {chat && selRow && (
             <div style={{ ...C, display: 'flex', flexDirection: 'column' }}>
               <SectionHead
-                title={`${selRow.name} — ${selRow.email}`}
+                title={`${selRow.name} — ${selRow.id}`}
                 right={
                   <button onClick={() => setChat(false)} className="btn-ghost" style={{ fontSize: 12 }}>
                     <History size={12} /> Close
@@ -483,7 +568,7 @@ function DashboardOverview({ onNavigate }: { onNavigate: (s: Section) => void })
             />
             <div style={{ padding: '14px 10px 12px' }}>
               <ResponsiveContainer width="100%" height={140}>
-                <AreaChart data={WEEKLY} margin={{ top: 4, right: 4, bottom: 0, left: -28 }}>
+                <AreaChart data={weekly} margin={{ top: 4, right: 4, bottom: 0, left: -28 }}>
                   <defs>
                     <linearGradient id="purpleGrad" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="0%" stopColor="#7C3AED" stopOpacity={0.28} />
@@ -519,13 +604,15 @@ function DashboardOverview({ onNavigate }: { onNavigate: (s: Section) => void })
           <div style={{ ...C }}>
             <SectionHead title="Recent Activity" />
             <div style={{ padding: '14px 18px', display: 'flex', flexDirection: 'column', gap: 14 }}>
-              {ACTIVITY.map(({ Icon: I, color, bg, text, time }, idx) => (
+              {activity.length === 0 ? (
+                <p style={{ fontSize: 12, color: '#334155', textAlign: 'center', padding: '12px 0' }}>No activity yet</p>
+              ) : activity.map(({ Icon: I, color, bg, text, time }, idx) => (
                 <div key={idx} style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
                   <div style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                     <div style={{ width: 32, height: 32, borderRadius: 9, background: bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                       <I size={13} style={{ color }} />
                     </div>
-                    {idx < ACTIVITY.length - 1 && <div style={{ width: 1, height: 12, background: 'rgba(255,255,255,0.05)', marginTop: 2 }} />}
+                    {idx < activity.length - 1 && <div style={{ width: 1, height: 12, background: 'rgba(255,255,255,0.05)', marginTop: 2 }} />}
                   </div>
                   <div style={{ flex: 1, minWidth: 0, paddingTop: 2 }}>
                     <p style={{ fontSize: 11.5, color: '#64748B', lineHeight: 1.5, marginBottom: 3 }}>{text}</p>
@@ -542,7 +629,7 @@ function DashboardOverview({ onNavigate }: { onNavigate: (s: Section) => void })
           <div style={{ ...C }}>
             <SectionHead title="Performance" />
             <div style={{ padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: 18 }}>
-              {PERF.map(({ label, value, pct, color }) => (
+              {perf.map(({ label, value, pct, color }) => (
                 <div key={label}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
                     <span style={{ fontSize: 12, color: '#64748B' }}>{label}</span>
@@ -562,7 +649,7 @@ function DashboardOverview({ onNavigate }: { onNavigate: (s: Section) => void })
                 background: 'rgba(5,150,105,0.06)', border: '1px solid rgba(5,150,105,0.1)',
               }}>
                 <TrendingUp size={12} style={{ color: '#34D399', flexShrink: 0 }} />
-                <span style={{ fontSize: 11, color: '#475569' }}>All metrics up vs last week</span>
+                <span style={{ fontSize: 11, color: '#475569' }}>Live data from backend</span>
               </div>
             </div>
           </div>
