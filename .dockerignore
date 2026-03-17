@@ -53,9 +53,7 @@ frontend/out/
 docs/
 specs/
 assets/
-context/
 README.md
-requirements.txt
 
 # Tests
 tests/
