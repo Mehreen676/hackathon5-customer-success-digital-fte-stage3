@@ -35,6 +35,18 @@ export interface HealthResponse {
   db: string
 }
 
+export interface TicketListItem {
+  ticket_ref: string
+  customer: string
+  subject: string
+  priority: string
+  status: string
+  channel: string
+  escalated: boolean
+  created_at: string
+  description?: string
+}
+
 export const api = {
   health: () => request<HealthResponse>('/health'),
 
@@ -83,6 +95,9 @@ export const api = {
 
   getTicketStatus: (ticketRef: string) =>
     request(`/support/ticket/${encodeURIComponent(ticketRef)}`),
+
+  getTickets: (limit = 50) =>
+    request<TicketListItem[]>(`/support/tickets?limit=${limit}`).catch(() => [] as TicketListItem[]),
 
   // -------------------------------------------------------------------------
   // Analytics

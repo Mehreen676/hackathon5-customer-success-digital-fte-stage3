@@ -23,7 +23,7 @@ from backend.channels.gmail_handler import gmail_handler
 from backend.channels.webform_handler import webform_handler
 from backend.channels.whatsapp_handler import whatsapp_handler
 from backend.database.database import get_db
-from backend.database.crud import get_ticket_by_ref
+from backend.database.crud import get_all_tickets, get_ticket_by_ref
 from backend.schemas.message_schema import (
     GenericMessageRequest,
     GmailMessageRequest,
@@ -263,3 +263,38 @@ def get_ticket_status(
         escalation_reason=ticket.escalation_reason,
         latest_response=latest_response,
     )
+
+
+# ---------------------------------------------------------------------------
+# GET /support/tickets  — list all tickets (dashboard)
+# ---------------------------------------------------------------------------
+
+
+@router.get("/tickets", summary="List recent support tickets")
+def list_tickets(
+    limit: int = 50,
+    db: Session = Depends(get_db),
+) -> list[dict]:
+    """
+    Return the most recent support tickets for the dashboard ticket panel.
+
+    Each record includes: ticket_ref, customer, subject, priority, status,
+    channel, escalated, created_at.
+    """
+    tickets = get_all_tickets(db, limit=limit)
+    return [
+        {
+            "ticket_ref": t.ticket_ref,
+            "customer": t.customer.name if t.customer else "Unknown",
+            "subject": t.subject,
+            "priority": t.priority,
+            "status": t.status,
+            "channel": t.channel,
+            "escalated": t.escalated,
+            "created_at": (
+                t.created_at.strftime("%Y-%m-%d %H:%M") if t.created_at else ""
+            ),
+            "description": t.description or "",
+        }
+        for t in tickets
+    ]
