@@ -31,12 +31,10 @@ app_port: 7860
 
 | Service | URL |
 |---------|-----|
-| **Frontend (Vercel)** | `https://PASTE_VERCEL_URL_HERE.vercel.app` |
-| **Backend API (Hugging Face Spaces)** | `https://PASTE_HF_SPACE_URL_HERE.hf.space` |
-| **API Docs (Swagger UI)** | `https://PASTE_HF_SPACE_URL_HERE.hf.space/docs` |
-| **API Health Check** | `https://PASTE_HF_SPACE_URL_HERE.hf.space/health` |
-
-> Replace the placeholders above with your live deployment URLs after deploying.
+| **Frontend (Vercel)** | `https://mehreen-nexora.vercel.app` |
+| **Backend API (Hugging Face Spaces)** | `https://mehreenasghar5-nexora-customer-success-fte.hf.space` |
+| **API Docs (Swagger UI)** | `https://mehreenasghar5-nexora-customer-success-fte.hf.space/docs` |
+| **API Health Check** | `https://mehreenasghar5-nexora-customer-success-fte.hf.space/health` |
 
 ---
 
