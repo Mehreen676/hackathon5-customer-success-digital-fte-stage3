@@ -13,10 +13,21 @@ Hugging Face Spaces (Dockerfile-based):
     CMD ["uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", "7860"]
     (HF Spaces exposes port 7860 by default)
 
+Or run directly (defaults to port 7860 for HF Spaces, override with PORT env var):
+    python -m backend.main
+
 The FastAPI app is defined in backend/api/main.py and re-exported here
 so tooling and deployment configs only need to reference one stable path.
 """
 
+import os
+
 from backend.api.main import app  # noqa: F401 — re-export for uvicorn
 
 __all__ = ["app"]
+
+if __name__ == "__main__":
+    import uvicorn
+
+    port = int(os.environ.get("PORT", 7860))
+    uvicorn.run("backend.main:app", host="0.0.0.0", port=port, reload=False)

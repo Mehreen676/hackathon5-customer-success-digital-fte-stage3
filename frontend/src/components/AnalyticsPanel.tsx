@@ -35,9 +35,9 @@ const TREND_DATA = [
 function GlowCard({ label, value, sub, glowClass, textColor }: { label: string; value: string; sub?: string; glowClass: string; textColor: string }) {
   return (
     <div className={glowClass}>
-      <p className="text-xs text-gray-500 font-medium mb-1">{label}</p>
-      <p className={`text-3xl font-bold ${textColor}`}>{value}</p>
-      {sub && <p className="text-xs text-gray-600 mt-1">{sub}</p>}
+      <p className="text-sm text-gray-500 font-semibold uppercase tracking-wider mb-3">{label}</p>
+      <p className={`text-5xl font-bold leading-none mb-1.5 ${textColor}`}>{value}</p>
+      {sub && <p className="text-sm text-gray-500 mt-2">{sub}</p>}
     </div>
   )
 }
@@ -48,24 +48,24 @@ function DarkBarChart({ data, title }: { data: Record<string, number>; title: st
   const barColors = ['#a78bfa', '#38bdf8', '#4ade80', '#fb923c', '#f472b6', '#22d3ee']
 
   return (
-    <div className="card-dark">
-      <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">{title}</h3>
-      <div className="space-y-3">
+    <div className="card">
+      <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-5">{title}</h3>
+      <div className="space-y-4">
         {entries.map(([key, val], i) => (
           <div key={key} className="flex items-center gap-3">
-            <span className="text-xs text-gray-500 w-24 truncate capitalize">{key.replace(/_/g, ' ')}</span>
-            <div className="flex-1 rounded-full overflow-hidden" style={{ height: 6, background: 'rgba(255,255,255,0.06)' }}>
+            <span className="text-xs text-gray-400 font-medium w-24 truncate capitalize">{key.replace(/_/g, ' ')}</span>
+            <div className="flex-1 rounded-full overflow-hidden" style={{ height: 10, background: 'rgba(255,255,255,0.06)' }}>
               <div
                 className="h-full rounded-full"
                 style={{
                   width: `${(val / max) * 100}%`,
                   background: barColors[i % barColors.length],
-                  boxShadow: `0 0 6px ${barColors[i % barColors.length]}66`,
+                  boxShadow: `0 0 8px ${barColors[i % barColors.length]}66`,
                   transition: 'width 0.6s ease',
                 }}
               />
             </div>
-            <span className="text-xs font-semibold text-gray-300 w-8 text-right">{val}</span>
+            <span className="text-sm font-bold text-gray-300 w-8 text-right">{val}</span>
           </div>
         ))}
       </div>
@@ -115,14 +115,14 @@ export default function AnalyticsPanel() {
   }
 
   if (!data) {
-    return <div className="card-dark text-gray-500 text-sm">Failed to load analytics data.</div>
+    return <div className="card text-gray-500 text-sm">Failed to load analytics data.</div>
   }
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-7">
       {data.source === 'demo' && (
         <div
-          className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm"
+          className="flex items-center gap-2 px-5 py-3 rounded-xl text-sm"
           style={{ background: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.2)', color: '#fbbf24' }}
         >
           <span>📊</span>
@@ -131,74 +131,75 @@ export default function AnalyticsPanel() {
       )}
 
       {/* KPI cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <GlowCard label="Total Interactions" value={data.total_interactions.toLocaleString()} sub="All time" glowClass="card-glow-purple" textColor="text-neon-purple" />
-        <GlowCard label="Avg Response Time" value={`${Math.round(data.avg_response_time_ms)} ms`} sub="End-to-end" glowClass="card-glow-blue" textColor="text-neon-blue" />
-        <GlowCard label="KB Hit Rate" value={`${Math.round(data.kb_hit_rate * 100)}%`} sub="Knowledge base" glowClass="card-glow-green" textColor="text-neon-green" />
-        <GlowCard label="AI Usage Rate" value={`${Math.round(data.ai_usage_rate * 100)}%`} sub="LLM invoked" glowClass="card-glow-cyan" textColor="text-neon-cyan" />
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
+        <GlowCard label="Total Interactions" value={data.total_interactions.toLocaleString()} sub="All time" glowClass="card" textColor="text-indigo-400" />
+        <GlowCard label="Avg Response Time" value={`${Math.round(data.avg_response_time_ms)} ms`} sub="End-to-end" glowClass="card" textColor="text-sky-400" />
+        <GlowCard label="KB Hit Rate" value={`${Math.round(data.kb_hit_rate * 100)}%`} sub="Knowledge base" glowClass="card" textColor="text-emerald-400" />
+        <GlowCard label="AI Usage Rate" value={`${Math.round(data.ai_usage_rate * 100)}%`} sub="LLM invoked" glowClass="card" textColor="text-cyan-400" />
       </div>
 
       {/* Secondary KPIs */}
-      <div className="grid grid-cols-3 gap-4">
-        <GlowCard label="Escalation Rate" value={`${Math.round(data.escalation_rate * 100)}%`} glowClass="card-dark border border-red-500/20" textColor="text-red-400" />
-        <GlowCard label="Ticket Creation" value={`${Math.round(data.ticket_creation_rate * 100)}%`} glowClass="card-dark border border-sky-500/20" textColor="text-sky-400" />
-        <GlowCard label="Total Tokens" value={data.total_tokens_used.toLocaleString()} sub="LLM tokens" glowClass="card-dark border border-violet-500/20" textColor="text-violet-400" />
+      <div className="grid grid-cols-3 gap-6">
+        <GlowCard label="Escalation Rate" value={`${Math.round(data.escalation_rate * 100)}%`} glowClass="card border border-red-500/20" textColor="text-red-400" />
+        <GlowCard label="Ticket Creation" value={`${Math.round(data.ticket_creation_rate * 100)}%`} glowClass="card border border-sky-500/20" textColor="text-sky-400" />
+        <GlowCard label="Total Tokens" value={data.total_tokens_used.toLocaleString()} sub="LLM tokens" glowClass="card border border-violet-500/20" textColor="text-violet-400" />
       </div>
 
       {/* Line chart */}
-      <div className="card-glow-purple">
-        <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">Weekly Trend — Tickets &amp; Escalations</h3>
-        <ResponsiveContainer width="100%" height={220}>
+      <div className="card">
+        <h3 className="text-sm font-bold text-white mb-1">Weekly Trend</h3>
+        <p className="text-xs text-gray-500 mb-5">Tickets &amp; escalations over the past 7 days</p>
+        <ResponsiveContainer width="100%" height={290}>
           <LineChart data={TREND_DATA} margin={{ top: 5, right: 10, bottom: 5, left: -20 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
-            <XAxis dataKey="day" tick={{ fill: '#6b7280', fontSize: 11 }} axisLine={false} tickLine={false} />
-            <YAxis tick={{ fill: '#6b7280', fontSize: 11 }} axisLine={false} tickLine={false} />
+            <XAxis dataKey="day" tick={{ fill: '#6b7280', fontSize: 12 }} axisLine={false} tickLine={false} />
+            <YAxis tick={{ fill: '#6b7280', fontSize: 12 }} axisLine={false} tickLine={false} />
             <Tooltip content={<CustomTooltip />} />
             <Legend wrapperStyle={{ fontSize: 12, color: '#9ca3af' }} />
             <Line
               type="monotone"
               dataKey="tickets"
               stroke="#a78bfa"
-              strokeWidth={2}
-              dot={{ fill: '#a78bfa', r: 3, strokeWidth: 0 }}
-              activeDot={{ r: 5, fill: '#a78bfa', boxShadow: '0 0 8px #a78bfa' }}
+              strokeWidth={2.5}
+              dot={{ fill: '#a78bfa', r: 4, strokeWidth: 0 }}
+              activeDot={{ r: 6, fill: '#a78bfa' }}
             />
             <Line
               type="monotone"
               dataKey="escalations"
               stroke="#f472b6"
-              strokeWidth={2}
-              dot={{ fill: '#f472b6', r: 3, strokeWidth: 0 }}
-              activeDot={{ r: 5, fill: '#f472b6' }}
+              strokeWidth={2.5}
+              dot={{ fill: '#f472b6', r: 4, strokeWidth: 0 }}
+              activeDot={{ r: 6, fill: '#f472b6' }}
             />
           </LineChart>
         </ResponsiveContainer>
       </div>
 
       {/* Bar charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
         <DarkBarChart title="Interactions by Channel" data={data.interactions_by_channel} />
         <DarkBarChart title="Interactions by Intent" data={data.interactions_by_intent} />
-        <div className="card-dark">
-          <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">Response Source Distribution</h3>
-          <div className="space-y-3">
+        <div className="card">
+          <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-5">Response Source Distribution</h3>
+          <div className="space-y-4">
             {Object.entries(data.interactions_by_source).map(([key, val]) => {
               const total = Object.values(data.interactions_by_source).reduce((a, b) => a + b, 0)
               const pct = Math.round((val / total) * 100)
               const colors: Record<string, string> = { kb: '#a78bfa', llm: '#38bdf8', fallback: '#fbbf24', escalation: '#f87171' }
               const color = colors[key] || '#94a3b8'
               return (
-                <div key={key} className="flex items-center justify-between text-sm">
-                  <div className="flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full" style={{ backgroundColor: color, boxShadow: `0 0 6px ${color}` }} />
-                    <span className="capitalize text-gray-400 text-xs">{key}</span>
+                <div key={key} className="flex items-center justify-between">
+                  <div className="flex items-center gap-2.5">
+                    <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: color, boxShadow: `0 0 8px ${color}` }} />
+                    <span className="capitalize text-gray-300 text-sm font-medium">{key}</span>
                   </div>
-                  <span className="text-xs font-semibold text-gray-300">{val} <span className="text-gray-600">({pct}%)</span></span>
+                  <span className="text-sm font-bold text-gray-200">{val} <span className="text-gray-500 font-normal">({pct}%)</span></span>
                 </div>
               )
             })}
           </div>
-          <div className="mt-4 flex h-2 rounded-full overflow-hidden gap-px">
+          <div className="mt-5 flex h-2.5 rounded-full overflow-hidden gap-px">
             {Object.entries(data.interactions_by_source).map(([key, val]) => {
               const total = Object.values(data.interactions_by_source).reduce((a, b) => a + b, 0)
               const colors: Record<string, string> = { kb: '#a78bfa', llm: '#38bdf8', fallback: '#fbbf24', escalation: '#f87171' }

@@ -13,8 +13,7 @@ interface Message {
 interface Conversation {
   id: string
   customer: string
-  initials: string
-  avatarColor: string
+  avatar: string
   channel: 'email' | 'whatsapp' | 'web_form'
   status: 'active' | 'escalated' | 'resolved'
   lastMessage: string
@@ -26,8 +25,7 @@ const MOCK_CONVERSATIONS: Conversation[] = [
   {
     id: 'conv-001',
     customer: 'Sarah Chen',
-    initials: 'SC',
-    avatarColor: 'linear-gradient(135deg,#7c3aed,#3b82f6)',
+    avatar: 'https://i.pravatar.cc/150?img=5',
     channel: 'email',
     status: 'active',
     lastMessage: 'I need help with my billing invoice',
@@ -41,8 +39,7 @@ const MOCK_CONVERSATIONS: Conversation[] = [
   {
     id: 'conv-002',
     customer: 'James Liu',
-    initials: 'JL',
-    avatarColor: 'linear-gradient(135deg,#059669,#0891b2)',
+    avatar: 'https://i.pravatar.cc/150?img=12',
     channel: 'whatsapp',
     status: 'escalated',
     lastMessage: 'Urgent: need refund immediately',
@@ -55,8 +52,7 @@ const MOCK_CONVERSATIONS: Conversation[] = [
   {
     id: 'conv-003',
     customer: 'Priya Sharma',
-    initials: 'PS',
-    avatarColor: 'linear-gradient(135deg,#db2777,#7c3aed)',
+    avatar: 'https://i.pravatar.cc/150?img=20',
     channel: 'web_form',
     status: 'resolved',
     lastMessage: 'How do I set up SSO?',
@@ -105,14 +101,15 @@ export default function ConversationPanel() {
   }
 
   return (
-    <div className="flex h-full gap-4">
+    <div className="flex h-full gap-5">
       {/* Conversation list */}
-      <div className="flex-shrink-0" style={{ width: 280 }}>
-        <div className="card-dark p-0 overflow-hidden flex flex-col h-full">
-          <div className="px-4 py-3" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-            <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Recent Conversations</h3>
+      <div className="flex-shrink-0" style={{ width: 320 }}>
+        <div className="card p-0 overflow-hidden flex flex-col h-full">
+          <div className="px-6 py-5" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+            <h3 className="text-base font-bold text-white">Recent Conversations</h3>
+            <p className="text-sm text-gray-600 mt-0.5">Live customer interactions</p>
           </div>
-          <div className="flex-1 overflow-y-auto divide-y" style={{ divideColor: 'rgba(255,255,255,0.04)' }}>
+          <div className="flex-1 overflow-y-auto">
             {conversations.map((conv) => {
               const isSelected = selected.id === conv.id
               const ch = CHANNEL_BADGE[conv.channel]
@@ -120,29 +117,31 @@ export default function ConversationPanel() {
                 <button
                   key={conv.id}
                   onClick={() => setSelected(conv)}
-                  className="w-full text-left px-4 py-3 transition-all"
+                  className="w-full text-left px-6 py-5 transition-all"
                   style={{
-                    background: isSelected ? 'rgba(139,92,246,0.1)' : 'transparent',
-                    borderLeft: isSelected ? '2px solid #a78bfa' : '2px solid transparent',
+                    background: isSelected ? 'rgba(129,140,248,0.08)' : 'transparent',
+                    borderLeft: isSelected ? '3px solid #818cf8' : '3px solid transparent',
+                    borderBottom: '1px solid rgba(255,255,255,0.04)',
                   }}
                 >
-                  <div className="flex items-center gap-3">
-                    <div
-                      className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold text-white flex-shrink-0"
-                      style={{ background: conv.avatarColor }}
-                    >
-                      {conv.initials}
-                    </div>
+                  <div className="flex items-center gap-3.5">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={conv.avatar}
+                      alt={conv.customer}
+                      className="rounded-full object-cover flex-shrink-0"
+                      style={{ width: 44, height: 44, border: '2px solid rgba(255,255,255,0.1)' }}
+                    />
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between mb-0.5">
-                        <span className="text-sm font-medium text-white truncate">{conv.customer}</span>
+                      <div className="flex items-center justify-between mb-1.5">
+                        <span className="text-sm font-semibold text-white truncate">{conv.customer}</span>
                         <span className="text-xs text-gray-600 flex-shrink-0 ml-1">{conv.timestamp}</span>
                       </div>
-                      <div className="flex items-center gap-1.5 mb-1">
-                        <span className={`badge-dark ${ch.cls} text-[10px] px-1.5 py-0`}>{ch.label}</span>
-                        <span className={`badge-dark ${STATUS_BADGE[conv.status]} text-[10px] px-1.5 py-0`}>{conv.status}</span>
+                      <div className="flex items-center gap-1.5 mb-1.5">
+                        <span className={`${ch.cls}`}>{ch.label}</span>
+                        <span className={`${STATUS_BADGE[conv.status]}`}>{conv.status}</span>
                       </div>
-                      <p className="text-xs text-gray-600 truncate">{conv.lastMessage}</p>
+                      <p className="text-sm text-gray-600 truncate">{conv.lastMessage}</p>
                     </div>
                   </div>
                 </button>
@@ -153,41 +152,42 @@ export default function ConversationPanel() {
       </div>
 
       {/* Conversation detail */}
-      <div className="flex-1 flex flex-col gap-4 min-w-0">
+      <div className="flex-1 flex flex-col gap-5 min-w-0">
         {/* Messages */}
-        <div className="card-dark flex-1 flex flex-col p-0 overflow-hidden">
-          <div className="px-4 py-3 flex items-center justify-between flex-shrink-0" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-            <div className="flex items-center gap-3">
-              <div
-                className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white"
-                style={{ background: selected.avatarColor }}
-              >
-                {selected.initials}
-              </div>
+        <div className="card flex-1 flex flex-col p-0 overflow-hidden">
+          <div className="px-6 py-5 flex items-center justify-between flex-shrink-0" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+            <div className="flex items-center gap-3.5">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={selected.avatar}
+                alt={selected.customer}
+                className="rounded-full object-cover flex-shrink-0"
+                style={{ width: 44, height: 44, border: '2px solid rgba(129,140,248,0.35)' }}
+              />
               <div>
-                <span className="text-sm font-semibold text-white">{selected.customer}</span>
-                <div className="flex items-center gap-1.5 mt-0.5">
-                  <span className={`badge-dark ${CHANNEL_BADGE[selected.channel].cls} text-[10px] px-1.5 py-0`}>
+                <span className="text-base font-semibold text-white">{selected.customer}</span>
+                <div className="flex items-center gap-1.5 mt-1">
+                  <span className={`${CHANNEL_BADGE[selected.channel].cls}`}>
                     {CHANNEL_BADGE[selected.channel].label}
                   </span>
                 </div>
               </div>
             </div>
-            <span className={`badge-dark ${STATUS_BADGE[selected.status]}`}>{selected.status}</span>
+            <span className={`${STATUS_BADGE[selected.status]}`}>{selected.status}</span>
           </div>
 
-          <div className="flex-1 overflow-y-auto p-4 space-y-4">
+          <div className="flex-1 overflow-y-auto px-6 py-6 space-y-5">
             {selected.messages.map((msg, i) => (
               <div key={i} className={`flex ${msg.role === 'agent' ? 'justify-end' : 'justify-start'}`}>
                 <div
-                  className="max-w-[75%] px-4 py-3 rounded-2xl text-sm whitespace-pre-wrap"
+                  className="max-w-[75%] px-5 py-4 rounded-2xl text-sm whitespace-pre-wrap leading-relaxed"
                   style={
                     msg.role === 'agent'
                       ? {
                           background: 'linear-gradient(135deg,rgba(124,58,237,0.8),rgba(59,130,246,0.6))',
                           color: '#f1f5f9',
                           borderBottomRightRadius: 4,
-                          boxShadow: '0 0 16px rgba(139,92,246,0.2)',
+                          boxShadow: '0 0 20px rgba(139,92,246,0.2)',
                         }
                       : {
                           background: 'rgba(255,255,255,0.06)',
@@ -198,7 +198,7 @@ export default function ConversationPanel() {
                   }
                 >
                   {msg.content}
-                  <div className="text-[10px] mt-1.5 opacity-60">{msg.timestamp}</div>
+                  <div className="text-xs mt-2 opacity-50">{msg.timestamp}</div>
                 </div>
               </div>
             ))}
@@ -206,13 +206,13 @@ export default function ConversationPanel() {
         </div>
 
         {/* Send new message */}
-        <div className="card-dark">
-          <div className="flex items-center gap-3 mb-3">
-            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Send to AI Agent</p>
+        <div className="card">
+          <div className="flex items-center gap-3 mb-5">
+            <p className="text-sm font-semibold text-gray-400 uppercase tracking-wider">Send to AI Agent</p>
             <select
               value={channel}
               onChange={(e) => setChannel(e.target.value as typeof channel)}
-              className="input-dark w-36 py-1 text-xs ml-auto"
+              className="input-dark w-44 ml-auto"
             >
               <option value="email">Email</option>
               <option value="whatsapp">WhatsApp</option>
@@ -223,22 +223,22 @@ export default function ConversationPanel() {
             value={newMessage}
             onChange={(e) => setNewMessage(e.target.value)}
             placeholder="Type a message to test the AI agent…"
-            rows={3}
-            className="input-dark resize-none mb-3"
+            rows={4}
+            className="input-dark resize-none mb-5"
           />
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             <button
               onClick={handleSend}
               disabled={sending || !newMessage.trim()}
-              className="btn-primary flex items-center gap-2"
+              className="btn-primary"
             >
-              <Send size={13} />
+              <Send size={16} />
               {sending ? 'Sending…' : 'Send Reply'}
             </button>
-            <button className="btn-ghost p-2" title="Attach file"><Paperclip size={14} /></button>
-            <button className="btn-ghost p-2" title="Emoji"><Smile size={14} /></button>
+            <button className="btn-ghost" title="Attach file"><Paperclip size={17} /></button>
+            <button className="btn-ghost" title="Emoji"><Smile size={17} /></button>
             {sendResult && (
-              <p className="text-xs text-gray-500 flex-1 ml-1 truncate">{sendResult}</p>
+              <p className="text-sm text-gray-500 flex-1 ml-1 truncate">{sendResult}</p>
             )}
           </div>
         </div>

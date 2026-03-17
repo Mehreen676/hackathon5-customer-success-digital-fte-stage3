@@ -78,7 +78,7 @@ export default function ApiTesterPanel() {
       } else if (activeTab === 'webform') {
         result = await api.sendWebForm(payload as Parameters<typeof api.sendWebForm>[0])
       } else {
-        result = await api.sendMessage(payload as Parameters<typeof api.sendMessage>[0])
+        result = await api.sendMessage(payload as unknown as Parameters<typeof api.sendMessage>[0])
       }
 
       setResponse(result as Record<string, unknown>)
@@ -193,8 +193,8 @@ export default function ApiTesterPanel() {
               {[
                 { label: 'Channel',    value: String(response.channel || '—') },
                 { label: 'Intent',     value: String(response.intent || '—') },
-                { label: 'Escalated',  value: response.escalated ? '⚠️ Yes' : '✅ No' },
-                { label: 'KB Used',    value: response.kb_used    ? '✅ Yes' : '❌ No' },
+                { label: 'Escalated',  value: Boolean(response.escalated) ? '⚠️ Yes' : '✅ No' },
+                { label: 'KB Used',    value: Boolean(response.kb_used)    ? '✅ Yes' : '❌ No' },
                 { label: 'AI Used',    value: (response as {ai_used?: boolean}).ai_used     ? '🤖 Yes' : '—' },
                 { label: 'Ticket',     value: (response.ticket as {ticket_ref?: string})?.ticket_ref ?? '—' },
               ].map(({ label, value }) => (
@@ -206,7 +206,7 @@ export default function ApiTesterPanel() {
             </div>
 
             {/* Response text */}
-            {response.response && (
+            {Boolean(response.response) && (
               <div className="p-3 bg-purple-50 border border-purple-100 rounded-lg">
                 <p className="text-xs font-semibold text-purple-600 mb-1">Agent Response</p>
                 <p className="text-sm text-gray-700 whitespace-pre-wrap">{String(response.response)}</p>

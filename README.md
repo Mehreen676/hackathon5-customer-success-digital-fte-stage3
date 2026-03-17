@@ -1,3 +1,13 @@
+---
+title: Nexora Customer Success FTE
+emoji: 🤖
+colorFrom: purple
+colorTo: blue
+sdk: docker
+pinned: false
+app_port: 7860
+---
+
 # Nexora — Customer Success Digital FTE
 
 ### Stage 3: Full AI System with LLM Reasoning & Frontend Dashboard
@@ -17,14 +27,30 @@
 
 ---
 
+## Live Demo
+
+| Service | URL |
+|---------|-----|
+| **Frontend (Vercel)** | `https://PASTE_VERCEL_URL_HERE.vercel.app` |
+| **Backend API (Hugging Face Spaces)** | `https://PASTE_HF_SPACE_URL_HERE.hf.space` |
+| **API Docs (Swagger UI)** | `https://PASTE_HF_SPACE_URL_HERE.hf.space/docs` |
+| **API Health Check** | `https://PASTE_HF_SPACE_URL_HERE.hf.space/health` |
+
+> Replace the placeholders above with your live deployment URLs after deploying.
+
+---
+
+## Demo Video
+
+> 📺 **Demo Video:** `https://PASTE_YOUTUBE_OR_LOOM_LINK_HERE`
+>
+> *(Replace with your YouTube / Loom / Google Drive recording link)*
+
+A complete walkthrough of the Stage 3 Customer Success Digital FTE system — multi-channel AI support, LLM reasoning, and the live dashboard.
+
+---
+
 ## Demo
-
-### Stage 3 Demo Video
-
-A complete walkthrough of the Stage 3 Customer Success Digital FTE system — multi-channel AI support, Kafka event streaming, LLM reasoning, and the live dashboard.
-
-> 📺 **Demo Video:** `PASTE_STAGE3_VIDEO_LINK_HERE`
-> *(Replace with Loom / YouTube / Google Drive link after recording)*
 
 **Frontend Dashboard Preview:**
 
@@ -37,19 +63,6 @@ A complete walkthrough of the Stage 3 Customer Success Digital FTE system — mu
 **Workflow Diagram:**
 
 ![Workflow Diagram](assets/stage3-workflow.svg)
-
----
-
-## Live Links
-
-> ⚠️ *Deploy to your preferred host (Hugging Face Spaces, Railway, Render, Vercel, etc.) then replace the placeholders below.*
-
-| Service | URL |
-|---------|-----|
-| **Frontend Live URL** | `PASTE_FRONTEND_LIVE_URL_HERE` |
-| **Backend Live URL** | `PASTE_BACKEND_LIVE_URL_HERE` |
-| **API Docs (Swagger)** | `PASTE_BACKEND_LIVE_URL_HERE/docs` |
-| **API Health Check** | `PASTE_BACKEND_LIVE_URL_HERE/health` |
 
 ---
 

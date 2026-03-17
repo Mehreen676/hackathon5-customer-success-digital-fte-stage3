@@ -1,7 +1,10 @@
 'use client'
 
 import { useState } from 'react'
+import { CheckCircle, AlertCircle, RefreshCw, Send } from 'lucide-react'
 import api from '@/lib/api'
+
+// ─── Types ───────────────────────────────────────────────────────────────────
 
 interface FormState {
   name: string
@@ -18,10 +21,7 @@ interface SubmissionResult {
   response: string
 }
 
-const CHANNELS = [
-  { value: 'web_form', label: 'Web Form (standard)' },
-  { value: 'email', label: 'Email (async)' },
-]
+// ─── Constants ───────────────────────────────────────────────────────────────
 
 const SUBJECTS = [
   'Billing question',
@@ -33,52 +33,69 @@ const SUBJECTS = [
   'Other',
 ]
 
+const INITIAL: FormState = { name: '', email: '', subject: '', message: '', channel: 'web_form' }
+
+// ─── Validation ──────────────────────────────────────────────────────────────
+
 function validate(form: FormState): Partial<Record<keyof FormState, string>> {
-  const errors: Partial<Record<keyof FormState, string>> = {}
-  if (!form.name.trim()) errors.name = 'Full name is required.'
-  if (!form.email.trim()) errors.email = 'Email address is required.'
-  else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email))
-    errors.email = 'Enter a valid email address.'
-  if (!form.subject.trim()) errors.subject = 'Please select or enter a subject.'
-  if (!form.message.trim()) errors.message = 'Message is required.'
-  else if (form.message.trim().length < 10)
-    errors.message = 'Message must be at least 10 characters.'
-  return errors
+  const e: Partial<Record<keyof FormState, string>> = {}
+  if (!form.name.trim())    e.name    = 'Full name is required.'
+  if (!form.email.trim())   e.email   = 'Email address is required.'
+  else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) e.email = 'Enter a valid email address.'
+  if (!form.subject.trim()) e.subject = 'Please select a subject.'
+  if (!form.message.trim()) e.message = 'Message is required.'
+  else if (form.message.trim().length < 10) e.message = 'Message must be at least 10 characters.'
+  return e
 }
 
+// ─── Shared style helpers ────────────────────────────────────────────────────
+
+function inputStyle(hasError: boolean): React.CSSProperties {
+  return {
+    width: '100%',
+    padding: '11px 14px',
+    borderRadius: 10,
+    background: 'rgba(255,255,255,0.04)',
+    border: `1px solid ${hasError ? 'rgba(220,38,38,0.5)' : 'rgba(255,255,255,0.09)'}`,
+    color: '#E2E8F0',
+    fontSize: 14,
+    outline: 'none',
+    transition: 'border-color .15s, box-shadow .15s',
+    colorScheme: 'dark' as React.CSSProperties['colorScheme'],
+  }
+}
+
+// ─── Component ───────────────────────────────────────────────────────────────
+
 export default function SupportForm() {
-  const [form, setForm] = useState<FormState>({
-    name: '',
-    email: '',
-    subject: '',
-    message: '',
-    channel: 'web_form',
-  })
+  const [form,   setForm]   = useState<FormState>(INITIAL)
   const [errors, setErrors] = useState<Partial<Record<keyof FormState, string>>>({})
   const [loading, setLoading] = useState(false)
-  const [result, setResult] = useState<SubmissionResult | null>(null)
-  const [serverError, setServerError] = useState<string | null>(null)
+  const [result,  setResult]  = useState<SubmissionResult | null>(null)
+  const [serverErr, setServerErr] = useState<string | null>(null)
 
-  function handleChange(
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
-  ) {
+  function handleChange(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) {
     const { name, value } = e.target
-    setForm((prev) => ({ ...prev, [name]: value }))
-    // Clear field error on change
-    if (errors[name as keyof FormState]) {
-      setErrors((prev) => ({ ...prev, [name]: undefined }))
-    }
+    setForm(prev => ({ ...prev, [name]: value }))
+    if (errors[name as keyof FormState]) setErrors(prev => ({ ...prev, [name]: undefined }))
+  }
+
+  function focusStyle(e: React.FocusEvent<HTMLElement>) {
+    const el = e.target as HTMLElement
+    el.style.borderColor = 'rgba(124,58,237,0.5)'
+    el.style.boxShadow   = '0 0 0 3px rgba(124,58,237,0.08)'
+  }
+  function blurStyle(e: React.FocusEvent<HTMLElement>, hasError: boolean) {
+    const el = e.target as HTMLElement
+    el.style.borderColor = hasError ? 'rgba(220,38,38,0.5)' : 'rgba(255,255,255,0.09)'
+    el.style.boxShadow   = 'none'
   }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    setServerError(null)
-
-    const validationErrors = validate(form)
-    if (Object.keys(validationErrors).length > 0) {
-      setErrors(validationErrors)
-      return
-    }
+    setServerErr(null)
+    const errs = validate(form)
+    if (Object.keys(errs).length) { setErrors(errs); return }
 
     setLoading(true)
     try {
@@ -88,20 +105,14 @@ export default function SupportForm() {
         subject: form.subject.trim(),
         message: form.message.trim(),
       }) as any
-
       if (data.success && data.ticket?.ticket_ref) {
-        setResult({
-          ticket_ref: data.ticket.ticket_ref,
-          status: data.ticket.status,
-          escalated: data.escalated ?? false,
-          response: data.response ?? '',
-        })
-        setForm({ name: '', email: '', subject: '', message: '', channel: 'web_form' })
+        setResult({ ticket_ref: data.ticket.ticket_ref, status: data.ticket.status, escalated: data.escalated ?? false, response: data.response ?? '' })
+        setForm(INITIAL)
       } else {
-        setServerError('Submission failed. Please try again.')
+        setServerErr('Submission failed. Please try again.')
       }
     } catch (err: any) {
-      setServerError(
+      setServerErr(
         err?.message?.includes('422')
           ? 'Please check all fields and try again.'
           : 'Could not reach the support system. Please try again later.'
@@ -111,61 +122,98 @@ export default function SupportForm() {
     }
   }
 
-  // ── Success state ──────────────────────────────────────────────────
+  // ── Success state ─────────────────────────────────────────────────
   if (result) {
     return (
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8 max-w-xl mx-auto">
-        <div className="flex items-center gap-3 mb-6">
-          <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center text-2xl">
-            ✅
+      <div style={{
+        borderRadius: 18, padding: '28px 28px',
+        background: '#111827',
+        border: '1px solid rgba(255,255,255,0.07)',
+        borderTop: '3px solid #059669',
+      }}>
+        {/* Header */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 24 }}>
+          <div style={{
+            width: 48, height: 48, borderRadius: 14, flexShrink: 0,
+            background: 'rgba(5,150,105,0.12)',
+            border: '1px solid rgba(5,150,105,0.25)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <CheckCircle size={22} style={{ color: '#34D399' }} />
           </div>
           <div>
-            <h2 className="text-xl font-semibold text-gray-900">Request Submitted</h2>
-            <p className="text-sm text-gray-500">
+            <h2 style={{ fontSize: 17, fontWeight: 700, color: '#F1F5F9' }}>Request Submitted</h2>
+            <p style={{ fontSize: 13, color: '#64748B', marginTop: 2 }}>
               We&apos;ve received your message and are on it.
             </p>
           </div>
         </div>
 
-        <div className="bg-gray-50 rounded-xl p-5 mb-6 space-y-3">
-          <div className="flex justify-between items-center">
-            <span className="text-sm text-gray-500">Ticket reference</span>
-            <span className="font-mono font-bold text-purple-700 text-lg">
+        {/* Ticket info */}
+        <div style={{
+          borderRadius: 12, background: 'rgba(255,255,255,0.03)',
+          border: '1px solid rgba(255,255,255,0.07)',
+          padding: '16px 18px', marginBottom: 20,
+          display: 'flex', flexDirection: 'column', gap: 12,
+        }}>
+          <InfoRow label="Ticket reference">
+            <span style={{ fontFamily: 'monospace', fontWeight: 800, fontSize: 16, color: '#C4B5FD' }}>
               {result.ticket_ref}
             </span>
-          </div>
-          <div className="flex justify-between items-center">
-            <span className="text-sm text-gray-500">Status</span>
-            <StatusBadge status={result.status} />
-          </div>
+          </InfoRow>
+          <InfoRow label="Status">
+            <StatusPill status={result.status} />
+          </InfoRow>
           {result.escalated && (
-            <div className="flex justify-between items-center">
-              <span className="text-sm text-gray-500">Priority</span>
-              <span className="text-sm font-medium text-red-600">
+            <InfoRow label="Priority">
+              <span style={{ fontSize: 13, fontWeight: 600, color: '#FCA5A5' }}>
                 Escalated to human agent
               </span>
-            </div>
+            </InfoRow>
           )}
         </div>
 
+        {/* AI response */}
         {result.response && (
-          <div className="mb-6">
-            <h3 className="text-sm font-medium text-gray-700 mb-2">
-              Initial response from our agent:
-            </h3>
-            <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">
+          <div style={{ marginBottom: 20 }}>
+            <p style={{ fontSize: 11, fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: 10 }}>
+              Initial response from our agent
+            </p>
+            <div style={{
+              borderRadius: 12, padding: '14px 16px',
+              background: 'rgba(124,58,237,0.07)',
+              border: '1px solid rgba(124,58,237,0.18)',
+              fontSize: 13.5, color: '#CBD5E1', lineHeight: 1.7,
+              whiteSpace: 'pre-wrap',
+            }}>
               {result.response}
             </div>
           </div>
         )}
 
-        <p className="text-xs text-gray-400 mb-4">
+        <p style={{ fontSize: 12, color: '#334155', marginBottom: 18 }}>
           Save your ticket reference — you can use it to check your request status any time.
         </p>
 
         <button
           onClick={() => setResult(null)}
-          className="w-full py-2.5 px-4 rounded-xl border border-gray-300 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+          style={{
+            width: '100%', padding: '11px 20px', borderRadius: 10,
+            background: 'rgba(255,255,255,0.04)',
+            border: '1px solid rgba(255,255,255,0.1)',
+            color: '#94A3B8', fontSize: 14, fontWeight: 600,
+            cursor: 'pointer', transition: 'all .15s',
+          }}
+          onMouseEnter={e => {
+            e.currentTarget.style.background = 'rgba(124,58,237,0.08)'
+            e.currentTarget.style.borderColor = 'rgba(124,58,237,0.25)'
+            e.currentTarget.style.color = '#C4B5FD'
+          }}
+          onMouseLeave={e => {
+            e.currentTarget.style.background = 'rgba(255,255,255,0.04)'
+            e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'
+            e.currentTarget.style.color = '#94A3B8'
+          }}
         >
           Submit another request
         </button>
@@ -173,151 +221,172 @@ export default function SupportForm() {
     )
   }
 
-  // ── Form state ─────────────────────────────────────────────────────
+  // ── Form state ────────────────────────────────────────────────────
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8 max-w-xl mx-auto">
-      <div className="mb-6">
-        <h2 className="text-xl font-semibold text-gray-900">Contact Support</h2>
-        <p className="text-sm text-gray-500 mt-1">
+    <div style={{
+      borderRadius: 18, padding: '28px',
+      background: '#111827',
+      border: '1px solid rgba(255,255,255,0.07)',
+      borderTop: '3px solid #7C3AED',
+    }}>
+      <div style={{ marginBottom: 22 }}>
+        <h2 style={{ fontSize: 17, fontWeight: 700, color: '#F1F5F9', marginBottom: 4 }}>Contact Support</h2>
+        <p style={{ fontSize: 13, color: '#64748B' }}>
           Describe your issue and our AI agent will respond immediately.
         </p>
       </div>
 
-      {serverError && (
-        <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700">
-          {serverError}
+      {/* Server error */}
+      {serverErr && (
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 10,
+          padding: '12px 14px', borderRadius: 10, marginBottom: 18,
+          background: 'rgba(220,38,38,0.08)',
+          border: '1px solid rgba(220,38,38,0.25)',
+        }}>
+          <AlertCircle size={15} style={{ color: '#F87171', flexShrink: 0 }} />
+          <span style={{ fontSize: 13, color: '#FCA5A5' }}>{serverErr}</span>
         </div>
       )}
 
-      <form onSubmit={handleSubmit} noValidate className="space-y-4">
+      <form onSubmit={handleSubmit} noValidate style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+
         {/* Name */}
-        <Field label="Full name" error={errors.name} required>
+        <DarkField label="Full name" error={errors.name} required>
           <input
-            type="text"
-            name="name"
-            value={form.name}
-            onChange={handleChange}
-            placeholder="Jane Smith"
-            className={inputClass(!!errors.name)}
+            type="text" name="name" value={form.name} onChange={handleChange}
+            placeholder="Jane Smith" autoComplete="name"
+            style={inputStyle(!!errors.name)}
+            onFocus={focusStyle}
+            onBlur={e => blurStyle(e, !!errors.name)}
           />
-        </Field>
+        </DarkField>
 
         {/* Email */}
-        <Field label="Email address" error={errors.email} required>
+        <DarkField label="Email address" error={errors.email} required>
           <input
-            type="email"
-            name="email"
-            value={form.email}
-            onChange={handleChange}
-            placeholder="jane@company.com"
-            className={inputClass(!!errors.email)}
+            type="email" name="email" value={form.email} onChange={handleChange}
+            placeholder="jane@company.com" autoComplete="email"
+            style={inputStyle(!!errors.email)}
+            onFocus={focusStyle}
+            onBlur={e => blurStyle(e, !!errors.email)}
           />
-        </Field>
+        </DarkField>
 
         {/* Subject */}
-        <Field label="Subject" error={errors.subject} required>
+        <DarkField label="Subject" error={errors.subject} required>
           <select
-            name="subject"
-            value={form.subject}
-            onChange={handleChange}
-            className={inputClass(!!errors.subject)}
+            name="subject" value={form.subject} onChange={handleChange}
+            style={{ ...inputStyle(!!errors.subject), cursor: 'pointer' }}
+            onFocus={focusStyle}
+            onBlur={e => blurStyle(e, !!errors.subject)}
           >
-            <option value="">Select a topic…</option>
-            {SUBJECTS.map((s) => (
-              <option key={s} value={s}>
-                {s}
-              </option>
+            <option value="" style={{ background: '#111827' }}>Select a topic…</option>
+            {SUBJECTS.map(s => (
+              <option key={s} value={s} style={{ background: '#111827', color: '#E2E8F0' }}>{s}</option>
             ))}
           </select>
-        </Field>
+        </DarkField>
 
         {/* Message */}
-        <Field label="Message" error={errors.message} required>
+        <DarkField label="Message" error={errors.message} required>
           <textarea
-            name="message"
-            value={form.message}
-            onChange={handleChange}
+            name="message" value={form.message} onChange={handleChange}
             placeholder="Describe your issue in as much detail as possible…"
             rows={5}
-            className={inputClass(!!errors.message) + ' resize-none'}
+            style={{ ...inputStyle(!!errors.message), resize: 'none' }}
+            onFocus={focusStyle}
+            onBlur={e => blurStyle(e, !!errors.message)}
           />
-          <p className="text-xs text-gray-400 mt-1">
+          <p style={{ fontSize: 11.5, color: '#334155', marginTop: 5 }}>
             {form.message.length}/2000 characters
           </p>
-        </Field>
+        </DarkField>
 
+        {/* Submit */}
         <button
           type="submit"
           disabled={loading}
-          className="w-full py-3 px-6 rounded-xl bg-purple-600 text-white font-medium text-sm
-                     hover:bg-purple-700 disabled:opacity-60 disabled:cursor-not-allowed
-                     transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2"
+          style={{
+            width: '100%', padding: '13px 20px', borderRadius: 10,
+            background: loading ? 'rgba(124,58,237,0.5)' : 'linear-gradient(135deg,#7C3AED,#6D28D9)',
+            border: '1px solid rgba(124,58,237,0.4)',
+            color: '#fff', fontSize: 15, fontWeight: 700,
+            cursor: loading ? 'not-allowed' : 'pointer',
+            transition: 'transform .18s, box-shadow .18s',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+          }}
+          onMouseEnter={e => {
+            if (!loading) {
+              e.currentTarget.style.transform = 'translateY(-1px)'
+              e.currentTarget.style.boxShadow = '0 6px 20px rgba(124,58,237,0.3)'
+            }
+          }}
+          onMouseLeave={e => {
+            e.currentTarget.style.transform = 'translateY(0)'
+            e.currentTarget.style.boxShadow = 'none'
+          }}
         >
           {loading ? (
-            <span className="flex items-center justify-center gap-2">
-              <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
-              </svg>
-              Processing…
-            </span>
+            <><RefreshCw size={15} style={{ animation: 'spin 1s linear infinite' }} /> Processing…</>
           ) : (
-            'Submit Request'
+            <><Send size={15} /> Submit Request</>
           )}
         </button>
       </form>
+
+      <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
     </div>
   )
 }
 
-// ── Sub-components ─────────────────────────────────────────────────────────
+// ─── Sub-components ──────────────────────────────────────────────────────────
 
-function Field({
-  label,
-  error,
-  required,
-  children,
+function DarkField({
+  label, error, required, children,
 }: {
-  label: string
-  error?: string
-  required?: boolean
-  children: React.ReactNode
+  label: string; error?: string; required?: boolean; children: React.ReactNode
 }) {
   return (
-    <div>
-      <label className="block text-sm font-medium text-gray-700 mb-1">
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+      <label style={{ fontSize: 13, fontWeight: 600, color: '#94A3B8' }}>
         {label}
-        {required && <span className="text-red-500 ml-0.5">*</span>}
+        {required && <span style={{ color: '#F87171', marginLeft: 3 }}>*</span>}
       </label>
       {children}
-      {error && <p className="text-xs text-red-600 mt-1">{error}</p>}
+      {error && (
+        <p style={{ fontSize: 12, color: '#F87171', display: 'flex', alignItems: 'center', gap: 4, marginTop: 2 }}>
+          <AlertCircle size={11} /> {error}
+        </p>
+      )}
     </div>
   )
 }
 
-function inputClass(hasError: boolean) {
-  return [
-    'w-full px-3.5 py-2.5 rounded-xl border text-sm',
-    'focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent',
-    'transition-colors',
-    hasError
-      ? 'border-red-400 bg-red-50'
-      : 'border-gray-300 bg-white hover:border-gray-400',
-  ].join(' ')
+function InfoRow({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <span style={{ fontSize: 13, color: '#64748B' }}>{label}</span>
+      {children}
+    </div>
+  )
 }
 
-function StatusBadge({ status }: { status: string }) {
-  const map: Record<string, string> = {
-    open: 'bg-blue-100 text-blue-700',
-    'auto-resolved': 'bg-green-100 text-green-700',
-    escalated: 'bg-red-100 text-red-700',
-    pending_review: 'bg-yellow-100 text-yellow-700',
-    closed: 'bg-gray-100 text-gray-600',
+function StatusPill({ status }: { status: string }) {
+  const map: Record<string, { bg: string; color: string; border: string }> = {
+    'open':          { bg: 'rgba(37,99,235,0.12)',  color: '#93C5FD', border: 'rgba(37,99,235,0.25)' },
+    'auto-resolved': { bg: 'rgba(5,150,105,0.12)',  color: '#6EE7B7', border: 'rgba(5,150,105,0.25)' },
+    'escalated':     { bg: 'rgba(220,38,38,0.12)',  color: '#FCA5A5', border: 'rgba(220,38,38,0.25)' },
+    'pending_review':{ bg: 'rgba(217,119,6,0.12)',  color: '#FCD34D', border: 'rgba(217,119,6,0.25)' },
+    'closed':        { bg: 'rgba(100,116,139,0.1)', color: '#94A3B8', border: 'rgba(100,116,139,0.2)' },
   }
+  const s = map[status] ?? map.closed
   return (
-    <span
-      className={`text-xs font-medium px-2.5 py-1 rounded-full ${map[status] ?? 'bg-gray-100 text-gray-600'}`}
-    >
+    <span style={{
+      fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 99,
+      background: s.bg, color: s.color, border: `1px solid ${s.border}`,
+      textTransform: 'capitalize',
+    }}>
       {status.replace(/_/g, ' ')}
     </span>
   )
