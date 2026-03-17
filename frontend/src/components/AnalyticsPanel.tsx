@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
 } from 'recharts'
-import api from '@/lib/api'
+import api from '../lib/api'
 
 interface AnalyticsSummary {
   total_interactions: number

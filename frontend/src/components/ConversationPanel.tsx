@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { Send, Paperclip, Smile } from 'lucide-react'
-import api from '@/lib/api'
+import api from '../lib/api'
 
 interface Message {
   role: 'customer' | 'agent'

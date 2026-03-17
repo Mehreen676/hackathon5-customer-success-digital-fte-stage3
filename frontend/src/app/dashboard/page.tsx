@@ -17,7 +17,7 @@ import ConversationPanel from '@/components/ConversationPanel'
 import TicketPanel       from '@/components/TicketPanel'
 import AnalyticsPanel    from '@/components/AnalyticsPanel'
 import ApiTesterPanel    from '@/components/ApiTesterPanel'
-import api from '@/lib/api'
+import api from '../../lib/api'
 
 type Section =
   | 'dashboard' | 'conversations' | 'tickets' | 'analytics'

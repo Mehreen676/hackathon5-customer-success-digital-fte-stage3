@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { CheckCircle, AlertCircle, RefreshCw, Send } from 'lucide-react'
-import api from '@/lib/api'
+import api from '../lib/api'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
