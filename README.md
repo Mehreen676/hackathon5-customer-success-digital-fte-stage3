@@ -12,13 +12,15 @@ app_port: 7860
 
 ### Stage 3: Full AI System with LLM Reasoning & Frontend Dashboard
 
+[![Frontend Live](https://img.shields.io/badge/Frontend-Live%20on%20Vercel-000000?logo=vercel)](https://mehreen-nexora.vercel.app)
+[![Backend Live](https://img.shields.io/badge/Backend-Live%20on%20HF%20Spaces-FFD21E?logo=huggingface&logoColor=000)](https://mehreenasghar5-nexora-customer-success-fte.hf.space)
+[![API Docs](https://img.shields.io/badge/API%20Docs-Swagger%20UI-85EA2D?logo=swagger&logoColor=000)](https://mehreenasghar5-nexora-customer-success-fte.hf.space/docs)
 ![Stage](https://img.shields.io/badge/Stage-3-purple)
 ![Python](https://img.shields.io/badge/Python-3.11+-blue)
 ![FastAPI](https://img.shields.io/badge/FastAPI-0.111.0-009688)
 ![Next.js](https://img.shields.io/badge/Next.js-14-black)
 ![Tests](https://img.shields.io/badge/Tests-384+-brightgreen)
 ![LLM](https://img.shields.io/badge/LLM-Claude%20%7C%20GPT--4o%20%7C%20Gemini-orange)
-![Kafka](https://img.shields.io/badge/Kafka-Event%20Streaming-231F20)
 ![Docker](https://img.shields.io/badge/Docker-24+-2496ED)
 ![Kubernetes](https://img.shields.io/badge/Kubernetes-1.28+-326CE5)
 ![License](https://img.shields.io/badge/License-MIT-yellow)
@@ -31,10 +33,10 @@ app_port: 7860
 
 | Service | URL |
 |---------|-----|
-| **Frontend (Vercel)** | `https://mehreen-nexora.vercel.app` |
-| **Backend API (Hugging Face Spaces)** | `https://mehreenasghar5-nexora-customer-success-fte.hf.space` |
-| **API Docs (Swagger UI)** | `https://mehreenasghar5-nexora-customer-success-fte.hf.space/docs` |
-| **API Health Check** | `https://mehreenasghar5-nexora-customer-success-fte.hf.space/health` |
+| **Frontend (Vercel)** | [mehreen-nexora.vercel.app](https://mehreen-nexora.vercel.app) |
+| **Backend API (Hugging Face Spaces)** | [mehreenasghar5-nexora-customer-success-fte.hf.space](https://mehreenasghar5-nexora-customer-success-fte.hf.space) |
+| **API Docs (Swagger UI)** | [.../docs](https://mehreenasghar5-nexora-customer-success-fte.hf.space/docs) |
+| **API Health Check** | [.../health](https://mehreenasghar5-nexora-customer-success-fte.hf.space/health) |
 
 ---
 
@@ -570,10 +572,10 @@ See [`docs/kubernetes-deployment.md`](docs/kubernetes-deployment.md) for the ful
 > **Production-style layout** aligned with Hackathon 5 expectations.
 > Each top-level folder has a single, clear responsibility.
 
-| Folder | Purpose |
-|--------|---------|
+| Folder / File | Purpose |
+|---------------|---------|
 | `backend/` | Deployable FastAPI service — all Python backend code lives here |
-| `frontend/` | Next.js 14 dashboard + public support form UI |
+| `frontend/` | Next.js 14 dashboard + public support form + landing UI |
 | `workers/` | Async Kafka consumer processes (message processor + retry worker) |
 | `k8s/` | Kubernetes deployment manifests (Deployments, HPA, Ingress, Secrets) |
 | `docs/` | Operations and deployment guides (runbook, monitoring, deployment) |
@@ -582,6 +584,8 @@ See [`docs/kubernetes-deployment.md`](docs/kubernetes-deployment.md) for the ful
 | `context/` | Business context files fed to the AI agent (brand voice, product docs) |
 | `monitoring/` | Prometheus scrape config + Alertmanager alert rules |
 | `tests/` | Full test suite (384+ tests across 13 modules) |
+| `agent/` | Top-level Agents SDK entry-point package |
+| `app.py` | Hugging Face Spaces entry point — re-exports `backend.api.main:app` |
 
 ---
 
@@ -593,10 +597,12 @@ hackathon5-customer-success-digital-fte-stage3/
 ├── requirements.txt                   ← Python dependencies
 ├── .env.example                       ← Environment variable template
 ├── .gitignore
+├── .gitattributes
 ├── .dockerignore
-├── Dockerfile                         ← Multi-stage build (builder + runtime)
+├── Dockerfile                         ← Single-stage build (HF Spaces compatible)
 ├── docker-compose.yml                 ← Full stack: Kafka, Postgres, API, workers, UI
 ├── startup.sh                         ← Waits for Postgres+Kafka, seeds DB, starts uvicorn
+├── app.py                             ← HF Spaces entry point (re-exports backend.api.main:app)
 │
 ├── backend/                           ← Deployable FastAPI backend
 │   ├── __init__.py
@@ -650,21 +656,28 @@ hackathon5-customer-success-digital-fte-stage3/
 │   ├── message_processor.py           ← Inbound topics → AI workflow → publish
 │   └── retry_worker.py                ← dead_letter → exponential back-off → re-queue
 │
-├── frontend/                          ← Next.js 14 Dashboard + Support UI
+├── frontend/                          ← Next.js 14 Dashboard + Public UI
 │   ├── src/
 │   │   ├── app/
-│   │   │   ├── page.tsx               ← Main dashboard (6 panels)
+│   │   │   ├── page.tsx               ← Landing page (/)
 │   │   │   ├── layout.tsx
-│   │   │   └── support/page.tsx       ← Public support form (/support)
+│   │   │   ├── globals.css
+│   │   │   ├── dashboard/page.tsx     ← Main dashboard (/dashboard)
+│   │   │   ├── support/page.tsx       ← Public support form (/support)
+│   │   │   ├── track-ticket/page.tsx  ← Ticket status lookup (/track-ticket)
+│   │   │   └── landing/page.tsx       ← Legacy landing redirect
 │   │   ├── components/
+│   │   │   ├── Header.tsx             ← Top navigation bar
+│   │   │   ├── Sidebar.tsx            ← Dashboard sidebar nav
 │   │   │   ├── ConversationPanel.tsx
 │   │   │   ├── TicketPanel.tsx
 │   │   │   ├── AnalyticsPanel.tsx
 │   │   │   ├── ApiTesterPanel.tsx
 │   │   │   ├── SupportForm.tsx        ← Form with validation + ticket ref display
 │   │   │   └── TicketStatusLookup.tsx ← TKT-XXXXXXXX lookup component
-│   │   └── lib/api.ts                 ← Typed fetch client
+│   │   └── lib/api.ts                 ← Typed fetch client (relative imports)
 │   ├── package.json
+│   ├── vercel.json                    ← Vercel build config
 │   └── next.config.mjs                ← Proxy /api/backend/* → :8000
 │
 ├── k8s/                               ← Kubernetes manifests
@@ -877,7 +890,7 @@ Each scenario includes: symptoms → diagnosis commands → remediation steps.
 | **Kafka Workers** | ✅ Ready | `workers/message_processor.py` + `workers/retry_worker.py` |
 | **Monitoring** | ✅ Ready | Prometheus scrape config + 20 alert rules in `monitoring/` |
 | **Tests** | ✅ Ready | 384+ tests across 13 modules — `pytest tests/ -v --cov=backend` |
-| **Live Deployment** | 🔲 Pending | Insert URLs in the [Live Links](#live-links) section above after deploying |
+| **Live Deployment** | ✅ Live | [Frontend](https://mehreen-nexora.vercel.app) · [Backend API](https://mehreenasghar5-nexora-customer-success-fte.hf.space) · [Swagger](https://mehreenasghar5-nexora-customer-success-fte.hf.space/docs) |
 
 ---
 
