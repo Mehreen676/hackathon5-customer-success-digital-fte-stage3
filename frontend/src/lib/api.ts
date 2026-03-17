@@ -1,11 +1,16 @@
 /**
  * API client — Nexora Support Dashboard (Stage 3)
  *
- * All requests are proxied through Next.js rewrites:
- *   /api/backend/* → http://localhost:8000/*
+ * When NEXT_PUBLIC_API_URL is set to a full URL (e.g. the HF Spaces URL on
+ * Vercel), the client calls the backend directly from the browser (CORS is
+ * allowed via allow_origins=["*"]).
+ *
+ * When NEXT_PUBLIC_API_URL is not set or is a relative path, requests go
+ * through the Next.js /api/backend/* proxy rewrite (local development).
  */
 
-const BASE_URL = '/api/backend'
+const _envUrl = process.env.NEXT_PUBLIC_API_URL ?? ''
+const BASE_URL = _envUrl.startsWith('http') ? _envUrl : '/api/backend'
 
 async function request<T>(
   path: string,
