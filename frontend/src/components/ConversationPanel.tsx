@@ -206,8 +206,8 @@ export default function ConversationPanel() {
           ) : (
             <div className="flex flex-col items-center justify-center flex-1">
               <MessageSquare size={40} style={{ color: 'rgba(255,255,255,0.08)', marginBottom: 14 }} />
-              <p className="text-sm font-semibold" style={{ color: 'rgba(255,255,255,0.2)' }}>Select a conversation</p>
-              <p className="text-xs mt-1" style={{ color: 'rgba(255,255,255,0.1)' }}>Choose one from the list to view details</p>
+              <p className="text-sm font-semibold" style={{ color: 'rgba(255,255,255,0.2)' }}>Select a conversation to view details or test AI agent</p>
+              <p className="text-xs mt-1" style={{ color: 'rgba(255,255,255,0.1)' }}>Choose one from the list on the left</p>
             </div>
           )}
         </div>
@@ -228,22 +228,26 @@ export default function ConversationPanel() {
           </div>
           <textarea
             value={newMessage}
-            onChange={(e) => setNewMessage(e.target.value)}
-            placeholder="Type a message to test the AI agent…"
+            onChange={(e) => { if (selected) setNewMessage(e.target.value) }}
+            placeholder={selected ? 'Type a message to test the AI agent…' : 'Select a conversation first'}
             rows={4}
+            disabled={!selected}
             className="input-dark resize-none mb-5"
+            style={{ opacity: selected ? 1 : 0.4, cursor: selected ? 'text' : 'not-allowed' }}
           />
           <div className="flex items-center gap-3">
-            <button
-              onClick={handleSend}
-              disabled={sending || !newMessage.trim()}
-              className="btn-primary"
-            >
-              <Send size={16} />
-              {sending ? 'Sending…' : 'Send Reply'}
-            </button>
-            <button className="btn-ghost" title="Attach file"><Paperclip size={17} /></button>
-            <button className="btn-ghost" title="Emoji"><Smile size={17} /></button>
+            {selected && (
+              <button
+                onClick={handleSend}
+                disabled={sending || !newMessage.trim()}
+                className="btn-primary"
+              >
+                <Send size={16} />
+                {sending ? 'Sending…' : 'Send Reply'}
+              </button>
+            )}
+            <button className="btn-ghost" title="Attach file" disabled={!selected} style={{ opacity: selected ? 1 : 0.3 }}><Paperclip size={17} /></button>
+            <button className="btn-ghost" title="Emoji" disabled={!selected} style={{ opacity: selected ? 1 : 0.3 }}><Smile size={17} /></button>
             {sendResult && (
               <p className="text-sm text-gray-500 flex-1 ml-1 truncate">{sendResult}</p>
             )}
