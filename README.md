@@ -44,7 +44,7 @@ app_port: 7860
 
 [![Watch Demo Video](https://img.youtube.com/vi/2E3PR6svbDQ/0.jpg)](https://youtu.be/2E3PR6svbDQ)
 
-A complete walkthrough of the Stage 3 Customer Success Digital FTE system — multi-channel AI support, LLM reasoning, and the live dashboard.
+A complete walkthrough of the Stage 3 Customer Success Digital FTE — demonstrating real-time multi-channel support (Web, WhatsApp, Gmail), AI-powered resolution, escalation handling, and the live analytics dashboard.
 
 ---
 
@@ -93,15 +93,19 @@ J --> O[Next.js Dashboard]
 
 ### How LLM Is Used
 
-The system applies a **3-tier response strategy** for every customer message:
+The system applies a **3-tier response strategy** for every customer message — optimising for cost, speed, and quality:
 
 | Tier | Source | When | LLM Cost |
 |------|--------|------|----------|
-| 1 | Knowledge Base | KB article matches customer query | $0 |
-| 2 | LLM Generation | KB has no match — AI generates answer | ~$0.0003 |
-| 3 | Fallback | LLM unavailable or fails | $0 |
+| 1 | Knowledge Base | KB article matches customer query | **$0** |
+| 2 | LLM Generation | KB has no match — AI generates answer | **~$0.0003** |
+| 3 | Fallback | LLM unavailable or fails | **$0** |
 
-**Multi-Provider Support:**
+---
+
+#### 🤖 Multi-Model Support
+
+Switch providers with a single environment variable — no code changes required:
 
 ```bash
 LLM_PROVIDER=anthropic   # → claude-sonnet-4-6 (default)
@@ -109,10 +113,29 @@ LLM_PROVIDER=openai      # → gpt-4o-mini
 LLM_PROVIDER=gemini      # → gemini-1.5-flash
 ```
 
-**Prompt Design:**
-- System prompt encodes Nexora brand voice + channel-specific tone (email=formal, WhatsApp=brief/emoji)
-- Customer context (account tier, VIP status, recent tickets) injected into the user prompt
-- Escalation detection runs **before** the KB/LLM path — sensitive queries are never passed to the LLM
+- **Claude (Anthropic)** — default; best reasoning quality
+- **GPT-4o-mini (OpenAI)** — fast, cost-efficient
+- **Gemini 1.5 Flash (Google)** — low latency, high throughput
+
+---
+
+#### 🧠 Reasoning Workflow
+
+Each inbound message passes through a structured pipeline:
+
+1. **Escalation check** — sensitive queries are caught *before* reaching the LLM
+2. **KB search** — fast, free resolution when a matching article exists
+3. **LLM generation** — context-aware response when KB has no match
+4. **Graceful fallback** — human-readable response if LLM is unavailable
+
+---
+
+#### 💡 Prompt Design & Cost Efficiency
+
+- System prompt encodes **Nexora brand voice** with channel-specific tone (email = formal, WhatsApp = brief + emoji)
+- **Customer context** (account tier, VIP status, recent tickets) is injected into every LLM call
+- Escalation detection runs **before** the KB/LLM path — sensitive queries are never sent to the LLM
+- Tier-1 KB hits cost **$0** — the LLM is only invoked when genuinely needed
 
 See [`specs/ai-reasoning-design.md`](specs/ai-reasoning-design.md) for full design documentation.
 
