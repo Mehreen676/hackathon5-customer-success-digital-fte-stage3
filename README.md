@@ -42,9 +42,7 @@ app_port: 7860
 
 ## Demo Video
 
-> 📺 **Demo Video:** `https://PASTE_YOUTUBE_OR_LOOM_LINK_HERE`
->
-> *(Replace with your YouTube / Loom / Google Drive recording link)*
+[![Watch Demo Video](https://img.youtube.com/vi/2E3PR6svbDQ/0.jpg)](https://youtu.be/2E3PR6svbDQ)
 
 A complete walkthrough of the Stage 3 Customer Success Digital FTE system — multi-channel AI support, LLM reasoning, and the live dashboard.
 
@@ -52,9 +50,7 @@ A complete walkthrough of the Stage 3 Customer Success Digital FTE system — mu
 
 ## Demo
 
-**Frontend Dashboard Preview:**
-
-![Frontend Preview](assets/frontend-preview.svg)
+> See live deployed app for real UI: [mehreen-nexora.vercel.app](https://mehreen-nexora.vercel.app)
 
 **Architecture Diagram:**
 
