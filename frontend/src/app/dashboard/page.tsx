@@ -693,15 +693,227 @@ function SettingsPanel() {
   )
 }
 
-function Placeholder({ title }: { title: string }) {
+// ─── Reports ─────────────────────────────────────────────────────────────────
+
+function ReportsPanel() {
+  const [tickets, setTickets] = useState<TicketListItem[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    api.getTickets(200).then((t) => { setTickets(t); setLoading(false) })
+  }, [])
+
+  const total     = tickets.length
+  const resolved  = tickets.filter(t => ['resolved', 'auto-resolved', 'closed'].includes(t.status)).length
+  const escalated = tickets.filter(t => t.escalated).length
+  const open      = tickets.filter(t => ['open', 'pending_review'].includes(t.status)).length
+  const resPct    = total > 0 ? Math.round(resolved / total * 100) : 0
+
+  const C: React.CSSProperties = {
+    borderRadius: 16, background: '#111827',
+    border: '1px solid rgba(255,255,255,0.07)', padding: '22px 24px',
+  }
+
+  const metrics = [
+    { label: 'Total Tickets',     value: total,     color: '#7C3AED', bg: 'rgba(124,58,237,0.1)',  Icon: Ticket        },
+    { label: 'Resolved Tickets',  value: resolved,  color: '#059669', bg: 'rgba(5,150,105,0.1)',   Icon: CheckCircle   },
+    { label: 'Escalated Tickets', value: escalated, color: '#D97706', bg: 'rgba(217,119,6,0.1)',   Icon: AlertTriangle },
+    { label: 'Open / Pending',    value: open,      color: '#2563EB', bg: 'rgba(37,99,235,0.1)',   Icon: Inbox         },
+  ]
+
+  if (loading) {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 240 }}>
+        <p style={{ fontSize: 13, color: '#475569' }}>Loading…</p>
+      </div>
+    )
+  }
+
   return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 320 }}>
-      <div style={{ textAlign: 'center' }}>
-        <div style={{ width: 56, height: 56, borderRadius: 16, background: 'rgba(124,58,237,0.08)', border: '1px solid rgba(124,58,237,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
-          <MessageSquare size={22} style={{ color: '#7C3AED' }} />
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 20, maxWidth: 900 }}>
+      <div>
+        <h2 style={{ fontSize: 20, fontWeight: 800, color: '#F1F5F9', marginBottom: 4 }}>Reports</h2>
+        <p style={{ fontSize: 13, color: '#475569' }}>Summary of all ticket activity from real backend data.</p>
+      </div>
+
+      {total === 0 ? (
+        <div style={{ ...C, textAlign: 'center', padding: '52px 24px' }}>
+          <FileText size={32} style={{ color: 'rgba(255,255,255,0.1)', marginBottom: 12 }} />
+          <p style={{ fontSize: 15, fontWeight: 600, color: '#475569' }}>No data available</p>
+          <p style={{ fontSize: 13, color: '#334155', marginTop: 4 }}>Submit a support request to see metrics here.</p>
         </div>
-        <p style={{ fontSize: 15, fontWeight: 600, color: '#94A3B8' }}>{title}</p>
-        <p style={{ fontSize: 13, color: '#334155', marginTop: 4 }}>Coming soon</p>
+      ) : (
+        <>
+          {/* Metric cards */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 14 }}>
+            {metrics.map(({ label, value, color, bg, Icon: I }) => (
+              <div key={label} style={{ ...C }}>
+                <div style={{ width: 40, height: 40, borderRadius: 10, background: bg, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 14 }}>
+                  <I size={18} style={{ color }} />
+                </div>
+                <p style={{ fontSize: 36, fontWeight: 800, color: '#F1F5F9', letterSpacing: '-1px', lineHeight: 1, marginBottom: 6 }}>{value}</p>
+                <p style={{ fontSize: 12, color: '#64748B' }}>{label}</p>
+              </div>
+            ))}
+          </div>
+
+          {/* Resolution bar */}
+          <div style={{ ...C }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+              <p style={{ fontSize: 14, fontWeight: 700, color: '#F1F5F9' }}>Resolution Rate</p>
+              <span style={{ fontSize: 22, fontWeight: 800, color: '#059669' }}>{resPct}%</span>
+            </div>
+            <div style={{ height: 8, borderRadius: 99, background: 'rgba(255,255,255,0.06)' }}>
+              <div style={{ width: `${resPct}%`, height: '100%', borderRadius: 99, background: 'linear-gradient(90deg,#059669,#34D399)', transition: 'width .4s' }} />
+            </div>
+            <p style={{ fontSize: 11.5, color: '#475569', marginTop: 8 }}>{resolved} of {total} tickets resolved</p>
+          </div>
+
+          {/* Breakdown table */}
+          <div style={{ borderRadius: 16, background: '#111827', border: '1px solid rgba(255,255,255,0.07)', overflow: 'hidden' }}>
+            <div style={{ padding: '14px 22px', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+              <p style={{ fontSize: 14, fontWeight: 700, color: '#F1F5F9' }}>Status Breakdown</p>
+            </div>
+            {Object.entries(
+              tickets.reduce<Record<string, number>>((acc, t) => {
+                acc[t.status] = (acc[t.status] ?? 0) + 1
+                return acc
+              }, {})
+            ).sort((a, b) => b[1] - a[1]).map(([status, count], i, arr) => {
+              const st = STATUS_MAP[status] ?? { label: status, color: '#64748B', bg: 'rgba(100,116,139,0.1)' }
+              const pct = Math.round(count / total * 100)
+              return (
+                <div key={status} style={{
+                  display: 'grid', gridTemplateColumns: '1fr 60px 80px',
+                  alignItems: 'center', gap: 12,
+                  padding: '13px 22px',
+                  borderBottom: i < arr.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none',
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <span style={{ width: 8, height: 8, borderRadius: '50%', background: st.color, flexShrink: 0, display: 'inline-block' }} />
+                    <span style={{ fontSize: 13, color: '#CBD5E1' }}>{st.label}</span>
+                  </div>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: '#F1F5F9' }}>{count}</span>
+                  <div style={{ height: 4, borderRadius: 99, background: 'rgba(255,255,255,0.06)' }}>
+                    <div style={{ width: `${pct}%`, height: '100%', borderRadius: 99, background: st.color }} />
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </>
+      )}
+    </div>
+  )
+}
+
+// ─── Escalations ─────────────────────────────────────────────────────────────
+
+function EscalationsPanel() {
+  const [tickets, setTickets] = useState<TicketListItem[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    api.getTickets(200).then((t) => {
+      setTickets(t.filter(x => x.escalated || x.status === 'escalated'))
+      setLoading(false)
+    })
+  }, [])
+
+  const C: React.CSSProperties = {
+    borderRadius: 16, background: '#111827',
+    border: '1px solid rgba(255,255,255,0.07)', overflow: 'hidden',
+  }
+
+  const PRIORITY_COLOR: Record<string, string> = {
+    critical: '#F87171', high: '#FDBA74', medium: '#FCD34D', low: '#86EFAC',
+  }
+
+  if (loading) {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 240 }}>
+        <p style={{ fontSize: 13, color: '#475569' }}>Loading…</p>
+      </div>
+    )
+  }
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div>
+          <h2 style={{ fontSize: 20, fontWeight: 800, color: '#F1F5F9', marginBottom: 4 }}>Escalations</h2>
+          <p style={{ fontSize: 13, color: '#475569' }}>Tickets flagged for human review.</p>
+        </div>
+        <div style={{
+          display: 'inline-flex', alignItems: 'center', gap: 6,
+          padding: '6px 14px', borderRadius: 99,
+          background: tickets.length > 0 ? 'rgba(220,38,38,0.1)' : 'rgba(255,255,255,0.04)',
+          border: `1px solid ${tickets.length > 0 ? 'rgba(220,38,38,0.25)' : 'rgba(255,255,255,0.08)'}`,
+        }}>
+          <AlertTriangle size={13} style={{ color: tickets.length > 0 ? '#F87171' : '#475569' }} />
+          <span style={{ fontSize: 13, fontWeight: 700, color: tickets.length > 0 ? '#FCA5A5' : '#475569' }}>
+            {tickets.length} escalated
+          </span>
+        </div>
+      </div>
+
+      <div style={{ ...C }}>
+        {tickets.length === 0 ? (
+          <div style={{ padding: '52px 24px', textAlign: 'center' }}>
+            <CheckCircle size={32} style={{ color: 'rgba(5,150,105,0.3)', marginBottom: 12 }} />
+            <p style={{ fontSize: 15, fontWeight: 600, color: '#475569' }}>No escalations</p>
+            <p style={{ fontSize: 13, color: '#334155', marginTop: 4 }}>All tickets are within normal resolution flow.</p>
+          </div>
+        ) : (
+          <>
+            {/* Header row */}
+            <div style={{
+              display: 'grid', gridTemplateColumns: '130px 1fr 1fr 90px 130px',
+              padding: '10px 22px',
+              background: 'rgba(0,0,0,0.25)', borderBottom: '1px solid rgba(255,255,255,0.05)',
+            }}>
+              {['Ticket ID', 'Customer', 'Subject', 'Priority', 'Created'].map(h => (
+                <span key={h} style={{ fontSize: 10, fontWeight: 700, color: '#1E293B', letterSpacing: '1px', textTransform: 'uppercase' }}>{h}</span>
+              ))}
+            </div>
+            {/* Data rows */}
+            {tickets.map((t, i) => (
+              <div
+                key={t.ticket_ref}
+                style={{
+                  display: 'grid', gridTemplateColumns: '130px 1fr 1fr 90px 130px',
+                  alignItems: 'center', padding: '14px 22px',
+                  borderBottom: i < tickets.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none',
+                  borderLeft: '3px solid rgba(220,38,38,0.4)',
+                }}
+              >
+                <code style={{ fontSize: 12, fontFamily: 'monospace', color: '#C4B5FD', fontWeight: 700 }}>{t.ticket_ref}</code>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={`https://i.pravatar.cc/150?u=${encodeURIComponent(t.customer)}`}
+                    alt={t.customer}
+                    style={{ width: 30, height: 30, borderRadius: '50%', objectFit: 'cover', border: '1.5px solid rgba(255,255,255,0.08)', flexShrink: 0 }}
+                  />
+                  <span style={{ fontSize: 13, color: '#F1F5F9', fontWeight: 500 }}>{t.customer}</span>
+                </div>
+                <span style={{ fontSize: 12.5, color: '#94A3B8', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', paddingRight: 12 }}>{t.subject}</span>
+                <span style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 4,
+                  padding: '3px 9px', borderRadius: 99, width: 'fit-content',
+                  fontSize: 11, fontWeight: 700,
+                  color: PRIORITY_COLOR[t.priority] ?? '#CBD5E1',
+                  background: 'rgba(255,255,255,0.04)',
+                  border: `1px solid ${PRIORITY_COLOR[t.priority] ?? '#CBD5E1'}30`,
+                }}>
+                  <span style={{ width: 5, height: 5, borderRadius: '50%', background: PRIORITY_COLOR[t.priority] ?? '#CBD5E1', display: 'inline-block' }} />
+                  {t.priority.charAt(0).toUpperCase() + t.priority.slice(1)}
+                </span>
+                <span style={{ fontSize: 11.5, color: '#475569' }}>{t.created_at}</span>
+              </div>
+            ))}
+          </>
+        )}
       </div>
     </div>
   )
@@ -731,8 +943,8 @@ export default function Dashboard() {
       case 'tickets':       return <TicketPanel />
       case 'analytics':     return <AnalyticsPanel />
       case 'api-tester':    return <ApiTesterPanel />
-      case 'escalations':   return <Placeholder title="Escalations" />
-      case 'reports':       return <Placeholder title="Reports" />
+      case 'escalations':   return <EscalationsPanel />
+      case 'reports':       return <ReportsPanel />
       case 'settings':      return <SettingsPanel />
       default:              return null
     }
