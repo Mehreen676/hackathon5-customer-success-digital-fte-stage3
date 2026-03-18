@@ -48,7 +48,7 @@ A complete walkthrough of the Stage 3 Customer Success Digital FTE system — mu
 
 ---
 
-## Architecture
+## 🏗 Architecture
 
 **Architecture Diagram:**
 
