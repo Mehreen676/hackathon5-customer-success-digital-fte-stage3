@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
 } from 'recharts'
-import api from '../lib/api'
+import api, { TicketListItem } from '../lib/api'
 
 interface AnalyticsSummary {
   total_interactions: number
@@ -21,16 +21,21 @@ interface AnalyticsSummary {
   source?: string
 }
 
-// Static trend data for the line chart
-const TREND_DATA = [
-  { day: 'Mon', tickets: 38, escalations: 4 },
-  { day: 'Tue', tickets: 52, escalations: 7 },
-  { day: 'Wed', tickets: 45, escalations: 5 },
-  { day: 'Thu', tickets: 61, escalations: 9 },
-  { day: 'Fri', tickets: 48, escalations: 6 },
-  { day: 'Sat', tickets: 29, escalations: 2 },
-  { day: 'Sun', tickets: 35, escalations: 3 },
-]
+function buildWeeklyTrend(tickets: TicketListItem[]) {
+  const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+  const now = new Date()
+  return Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(now)
+    d.setDate(d.getDate() - (6 - i))
+    const dateStr = d.toISOString().slice(0, 10)
+    const day = tickets.filter(t => t.created_at.startsWith(dateStr))
+    return {
+      day: days[d.getDay()],
+      tickets: day.length,
+      escalations: day.filter(t => t.escalated).length,
+    }
+  })
+}
 
 function GlowCard({ label, value, sub, glowClass, textColor }: { label: string; value: string; sub?: string; glowClass: string; textColor: string }) {
   return (
@@ -50,6 +55,9 @@ function DarkBarChart({ data, title }: { data: Record<string, number>; title: st
   return (
     <div className="card">
       <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-5">{title}</h3>
+      {entries.length === 0 ? (
+        <p className="text-sm text-gray-600 text-center py-4">No data available</p>
+      ) : (
       <div className="space-y-4">
         {entries.map(([key, val], i) => (
           <div key={key} className="flex items-center gap-3">
@@ -69,6 +77,7 @@ function DarkBarChart({ data, title }: { data: Record<string, number>; title: st
           </div>
         ))}
       </div>
+      )}
     </div>
   )
 }
@@ -93,12 +102,17 @@ const CustomTooltip = ({ active, payload, label }: { active?: boolean; payload?:
 }
 
 export default function AnalyticsPanel() {
-  const [data, setData] = useState<AnalyticsSummary | null>(null)
+  const [data,    setData]    = useState<AnalyticsSummary | null>(null)
+  const [tickets, setTickets] = useState<TicketListItem[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    api.getAnalyticsSummary().then((d) => {
-      setData(d as AnalyticsSummary)
+    Promise.all([
+      api.getAnalyticsSummary(),
+      api.getTickets(200),
+    ]).then(([summary, tix]) => {
+      setData(summary as AnalyticsSummary)
+      setTickets(tix)
       setLoading(false)
     }).catch(() => setLoading(false))
   }, [])
@@ -118,17 +132,25 @@ export default function AnalyticsPanel() {
     return <div className="card text-gray-500 text-sm">Failed to load analytics data.</div>
   }
 
+  const isEmpty = (data.source === 'empty' || data.source === 'demo') && data.total_interactions === 0 && tickets.length === 0
+  const trendData = buildWeeklyTrend(tickets)
+
+  if (isEmpty) {
+    return (
+      <div className="space-y-7">
+        <div className="card" style={{ textAlign: 'center', padding: '60px 24px' }}>
+          <div style={{ width: 56, height: 56, borderRadius: 16, background: 'rgba(99,102,241,0.08)', border: '1px solid rgba(99,102,241,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+            <span style={{ fontSize: 24 }}>📊</span>
+          </div>
+          <p style={{ fontSize: 16, fontWeight: 700, color: '#94A3B8', marginBottom: 6 }}>No analytics data yet</p>
+          <p style={{ fontSize: 13, color: '#475569' }}>Submit support requests to start seeing metrics here.</p>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-7">
-      {data.source === 'demo' && (
-        <div
-          className="flex items-center gap-2 px-5 py-3 rounded-xl text-sm"
-          style={{ background: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.2)', color: '#fbbf24' }}
-        >
-          <span>📊</span>
-          <span>Showing demo data — start the backend and process messages to see live metrics.</span>
-        </div>
-      )}
 
       {/* KPI cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
@@ -169,7 +191,7 @@ export default function AnalyticsPanel() {
         <h3 className="text-sm font-bold text-white mb-1">Weekly Trend</h3>
         <p className="text-xs text-gray-500 mb-5">Tickets &amp; escalations over the past 7 days</p>
         <ResponsiveContainer width="100%" height={290}>
-          <LineChart data={TREND_DATA} margin={{ top: 5, right: 10, bottom: 5, left: -20 }}>
+          <LineChart data={trendData} margin={{ top: 5, right: 10, bottom: 5, left: -20 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
             <XAxis dataKey="day" tick={{ fill: '#6b7280', fontSize: 12 }} axisLine={false} tickLine={false} />
             <YAxis tick={{ fill: '#6b7280', fontSize: 12 }} axisLine={false} tickLine={false} />
@@ -201,36 +223,42 @@ export default function AnalyticsPanel() {
         <DarkBarChart title="Interactions by Intent" data={data.interactions_by_intent} />
         <div className="card">
           <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-5">Response Source Distribution</h3>
-          <div className="space-y-4">
-            {Object.entries(data.interactions_by_source).map(([key, val]) => {
-              const total = Object.values(data.interactions_by_source).reduce((a, b) => a + b, 0)
-              const pct = Math.round((val / total) * 100)
-              const colors: Record<string, string> = { kb: '#a78bfa', llm: '#38bdf8', fallback: '#fbbf24', escalation: '#f87171' }
-              const color = colors[key] || '#94a3b8'
-              return (
-                <div key={key} className="flex items-center justify-between">
-                  <div className="flex items-center gap-2.5">
-                    <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: color, boxShadow: `0 0 8px ${color}` }} />
-                    <span className="capitalize text-gray-300 text-sm font-medium">{key}</span>
-                  </div>
-                  <span className="text-sm font-bold text-gray-200">{val} <span className="text-gray-500 font-normal">({pct}%)</span></span>
-                </div>
-              )
-            })}
-          </div>
-          <div className="mt-5 flex h-2.5 rounded-full overflow-hidden gap-px">
-            {Object.entries(data.interactions_by_source).map(([key, val]) => {
-              const total = Object.values(data.interactions_by_source).reduce((a, b) => a + b, 0)
-              const colors: Record<string, string> = { kb: '#a78bfa', llm: '#38bdf8', fallback: '#fbbf24', escalation: '#f87171' }
-              return (
-                <div
-                  key={key}
-                  style={{ width: `${(val / total) * 100}%`, backgroundColor: colors[key] || '#94a3b8' }}
-                  title={`${key}: ${val}`}
-                />
-              )
-            })}
-          </div>
+          {Object.keys(data.interactions_by_source).length === 0 ? (
+            <p className="text-sm text-gray-600 text-center py-4">No data available</p>
+          ) : (
+            <>
+              <div className="space-y-4">
+                {Object.entries(data.interactions_by_source).map(([key, val]) => {
+                  const total = Object.values(data.interactions_by_source).reduce((a, b) => a + b, 0)
+                  const pct = Math.round((val / total) * 100)
+                  const colors: Record<string, string> = { kb: '#a78bfa', llm: '#38bdf8', fallback: '#fbbf24', escalation: '#f87171' }
+                  const color = colors[key] || '#94a3b8'
+                  return (
+                    <div key={key} className="flex items-center justify-between">
+                      <div className="flex items-center gap-2.5">
+                        <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: color, boxShadow: `0 0 8px ${color}` }} />
+                        <span className="capitalize text-gray-300 text-sm font-medium">{key}</span>
+                      </div>
+                      <span className="text-sm font-bold text-gray-200">{val} <span className="text-gray-500 font-normal">({pct}%)</span></span>
+                    </div>
+                  )
+                })}
+              </div>
+              <div className="mt-5 flex h-2.5 rounded-full overflow-hidden gap-px">
+                {Object.entries(data.interactions_by_source).map(([key, val]) => {
+                  const total = Object.values(data.interactions_by_source).reduce((a, b) => a + b, 0)
+                  const colors: Record<string, string> = { kb: '#a78bfa', llm: '#38bdf8', fallback: '#fbbf24', escalation: '#f87171' }
+                  return (
+                    <div
+                      key={key}
+                      style={{ width: `${(val / total) * 100}%`, backgroundColor: colors[key] || '#94a3b8' }}
+                      title={`${key}: ${val}`}
+                    />
+                  )
+                })}
+              </div>
+            </>
+          )}
         </div>
       </div>
     </div>

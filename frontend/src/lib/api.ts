@@ -117,24 +117,22 @@ export const api = {
     request(`/analytics/recent?limit=${limit}`).catch(() => ({ records: [], source: 'error' })),
 }
 
-// Demo fallback so dashboard works without backend running
+// Empty-state fallback — used when the backend is unreachable.
+// Returns all zeros so the UI shows real empty states instead of fake data.
 function _demoAnalytics() {
   return {
-    total_interactions: 1247,
-    avg_response_time_ms: 342.5,
-    escalation_rate: 0.12,
-    kb_hit_rate: 0.68,
-    ai_usage_rate: 0.20,
-    fallback_rate: 0.08,
-    ticket_creation_rate: 0.94,
-    interactions_by_channel: { email: 587, whatsapp: 412, web_form: 248 },
-    interactions_by_intent: {
-      billing: 312, account: 287, integration: 198,
-      general: 176, plan: 143, data: 67, team: 64,
-    },
-    interactions_by_source: { kb: 848, llm: 249, fallback: 100, escalation: 50 },
-    total_tokens_used: 284500,
-    source: 'demo',
+    total_interactions: 0,
+    avg_response_time_ms: 0,
+    escalation_rate: 0,
+    kb_hit_rate: 0,
+    ai_usage_rate: 0,
+    fallback_rate: 0,
+    ticket_creation_rate: 0,
+    interactions_by_channel: {} as Record<string, number>,
+    interactions_by_intent:  {} as Record<string, number>,
+    interactions_by_source:  {} as Record<string, number>,
+    total_tokens_used: 0,
+    source: 'empty',
   }
 }
 
