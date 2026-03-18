@@ -48,9 +48,7 @@ A complete walkthrough of the Stage 3 Customer Success Digital FTE system — mu
 
 ---
 
-## Demo
-
-> See live deployed app for real UI: [mehreen-nexora.vercel.app](https://mehreen-nexora.vercel.app)
+## Architecture
 
 **Architecture Diagram:**
 
