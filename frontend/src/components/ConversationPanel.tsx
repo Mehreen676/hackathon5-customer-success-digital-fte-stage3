@@ -1,8 +1,8 @@
 'use client'
 
-import { useState } from 'react'
-import { Send, Paperclip, Smile } from 'lucide-react'
-import api from '../lib/api'
+import { useState, useEffect } from 'react'
+import { Send, Paperclip, Smile, MessageSquare } from 'lucide-react'
+import api, { TicketListItem } from '../lib/api'
 
 interface Message {
   role: 'customer' | 'agent'
@@ -21,49 +21,27 @@ interface Conversation {
   messages: Message[]
 }
 
-const MOCK_CONVERSATIONS: Conversation[] = [
-  {
-    id: 'conv-001',
-    customer: 'Sarah Chen',
-    avatar: 'https://i.pravatar.cc/150?img=5',
-    channel: 'email',
-    status: 'active',
-    lastMessage: 'I need help with my billing invoice',
-    timestamp: '2m ago',
-    messages: [
-      { role: 'customer', content: 'Hi, I cannot find my invoice from last month. Could you help?', timestamp: '10:21 AM' },
-      { role: 'agent', content: 'Dear Sarah,\n\nThank you for reaching out. You can access all your invoices from the Billing section in your dashboard under Settings → Billing → Invoice History.\n\nBest regards,\nNexora Customer Success Team', timestamp: '10:21 AM' },
-      { role: 'customer', content: 'Perfect, found it! Thank you!', timestamp: '10:23 AM' },
-    ],
-  },
-  {
-    id: 'conv-002',
-    customer: 'James Liu',
-    avatar: 'https://i.pravatar.cc/150?img=12',
-    channel: 'whatsapp',
-    status: 'escalated',
-    lastMessage: 'Urgent: need refund immediately',
-    timestamp: '5m ago',
-    messages: [
-      { role: 'customer', content: 'I was charged twice for the same month. I need an immediate refund!', timestamp: '10:15 AM' },
-      { role: 'agent', content: "Hi James! 👋 I'm really sorry about this billing issue. I've flagged it as a priority and our billing team will be in touch within 1 business day. Ticket #TKT-0042 created. 😊", timestamp: '10:15 AM' },
-    ],
-  },
-  {
-    id: 'conv-003',
-    customer: 'Priya Sharma',
-    avatar: 'https://i.pravatar.cc/150?img=20',
-    channel: 'web_form',
-    status: 'resolved',
-    lastMessage: 'How do I set up SSO?',
-    timestamp: '1h ago',
-    messages: [
-      { role: 'customer', content: 'We need to set up Single Sign-On for our enterprise account. Where do I start?', timestamp: '09:10 AM' },
-      { role: 'agent', content: 'Hi Priya,\n\nThanks for contacting us! SSO setup is available on Business and Enterprise plans. Go to Settings → Security → SSO Configuration and follow the SAML 2.0 setup guide.\n\nTicket #TKT-0041 created for reference.\n\nNexora Support Team', timestamp: '09:10 AM' },
-      { role: 'customer', content: 'Got it, all configured now. Thanks!', timestamp: '09:45 AM' },
-    ],
-  },
-]
+function ticketToConversation(t: TicketListItem): Conversation {
+  let status: Conversation['status'] = 'active'
+  if (t.escalated || t.status === 'escalated') status = 'escalated'
+  else if (t.status === 'auto-resolved' || t.status === 'closed') status = 'resolved'
+
+  const messages: Message[] = []
+  if (t.description) {
+    messages.push({ role: 'customer', content: t.description, timestamp: t.created_at })
+  }
+
+  return {
+    id: t.ticket_ref,
+    customer: t.customer,
+    avatar: `https://i.pravatar.cc/150?u=${encodeURIComponent(t.customer)}`,
+    channel: (t.channel as Conversation['channel']) || 'web_form',
+    status,
+    lastMessage: t.subject,
+    timestamp: t.created_at,
+    messages,
+  }
+}
 
 const CHANNEL_BADGE: Record<string, { label: string; cls: string }> = {
   email:    { label: 'Email',     cls: 'badge-blue'  },
@@ -78,12 +56,19 @@ const STATUS_BADGE: Record<string, string> = {
 }
 
 export default function ConversationPanel() {
-  const [conversations] = useState<Conversation[]>(MOCK_CONVERSATIONS)
-  const [selected, setSelected] = useState<Conversation>(MOCK_CONVERSATIONS[0])
+  const [conversations, setConversations] = useState<Conversation[]>([])
+  const [selected, setSelected] = useState<Conversation | null>(null)
   const [newMessage, setNewMessage] = useState('')
   const [channel, setChannel] = useState<'email' | 'whatsapp' | 'web_form'>('web_form')
   const [sending, setSending] = useState(false)
   const [sendResult, setSendResult] = useState<string | null>(null)
+
+  useEffect(() => {
+    api.getTickets(50).then((tickets) => {
+      const convs = tickets.map(ticketToConversation)
+      setConversations(convs)
+    })
+  }, [])
 
   const handleSend = async () => {
     if (!newMessage.trim()) return
@@ -110,43 +95,51 @@ export default function ConversationPanel() {
             <p className="text-sm text-gray-600 mt-0.5">Live customer interactions</p>
           </div>
           <div className="flex-1 overflow-y-auto">
-            {conversations.map((conv) => {
-              const isSelected = selected.id === conv.id
-              const ch = CHANNEL_BADGE[conv.channel]
-              return (
-                <button
-                  key={conv.id}
-                  onClick={() => setSelected(conv)}
-                  className="w-full text-left px-6 py-5 transition-all"
-                  style={{
-                    background: isSelected ? 'rgba(129,140,248,0.08)' : 'transparent',
-                    borderLeft: isSelected ? '3px solid #818cf8' : '3px solid transparent',
-                    borderBottom: '1px solid rgba(255,255,255,0.04)',
-                  }}
-                >
-                  <div className="flex items-center gap-3.5">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={conv.avatar}
-                      alt={conv.customer}
-                      className="rounded-full object-cover flex-shrink-0"
-                      style={{ width: 44, height: 44, border: '2px solid rgba(255,255,255,0.1)' }}
-                    />
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between mb-1.5">
-                        <span className="text-sm font-semibold text-white truncate">{conv.customer}</span>
-                        <span className="text-xs text-gray-600 flex-shrink-0 ml-1">{conv.timestamp}</span>
+            {conversations.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 px-6 text-center">
+                <MessageSquare size={32} style={{ color: 'rgba(255,255,255,0.1)', marginBottom: 12 }} />
+                <p className="text-sm font-semibold" style={{ color: 'rgba(255,255,255,0.25)' }}>No conversations yet</p>
+                <p className="text-xs mt-1" style={{ color: 'rgba(255,255,255,0.12)' }}>Submitted tickets will appear here</p>
+              </div>
+            ) : (
+              conversations.map((conv) => {
+                const isSelected = selected?.id === conv.id
+                const ch = CHANNEL_BADGE[conv.channel] ?? CHANNEL_BADGE.web_form
+                return (
+                  <button
+                    key={conv.id}
+                    onClick={() => setSelected(conv)}
+                    className="w-full text-left px-6 py-5 transition-all"
+                    style={{
+                      background: isSelected ? 'rgba(129,140,248,0.08)' : 'transparent',
+                      borderLeft: isSelected ? '3px solid #818cf8' : '3px solid transparent',
+                      borderBottom: '1px solid rgba(255,255,255,0.04)',
+                    }}
+                  >
+                    <div className="flex items-center gap-3.5">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={conv.avatar}
+                        alt={conv.customer}
+                        className="rounded-full object-cover flex-shrink-0"
+                        style={{ width: 44, height: 44, border: '2px solid rgba(255,255,255,0.1)' }}
+                      />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between mb-1.5">
+                          <span className="text-sm font-semibold text-white truncate">{conv.customer}</span>
+                          <span className="text-xs text-gray-600 flex-shrink-0 ml-1">{conv.timestamp}</span>
+                        </div>
+                        <div className="flex items-center gap-1.5 mb-1.5">
+                          <span className={`${ch.cls}`}>{ch.label}</span>
+                          <span className={`${STATUS_BADGE[conv.status]}`}>{conv.status}</span>
+                        </div>
+                        <p className="text-sm text-gray-600 truncate">{conv.lastMessage}</p>
                       </div>
-                      <div className="flex items-center gap-1.5 mb-1.5">
-                        <span className={`${ch.cls}`}>{ch.label}</span>
-                        <span className={`${STATUS_BADGE[conv.status]}`}>{conv.status}</span>
-                      </div>
-                      <p className="text-sm text-gray-600 truncate">{conv.lastMessage}</p>
                     </div>
-                  </div>
-                </button>
-              )
-            })}
+                  </button>
+                )
+              })
+            )}
           </div>
         </div>
       </div>
@@ -155,54 +148,68 @@ export default function ConversationPanel() {
       <div className="flex-1 flex flex-col gap-5 min-w-0">
         {/* Messages */}
         <div className="card flex-1 flex flex-col p-0 overflow-hidden">
-          <div className="px-6 py-5 flex items-center justify-between flex-shrink-0" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-            <div className="flex items-center gap-3.5">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={selected.avatar}
-                alt={selected.customer}
-                className="rounded-full object-cover flex-shrink-0"
-                style={{ width: 44, height: 44, border: '2px solid rgba(129,140,248,0.35)' }}
-              />
-              <div>
-                <span className="text-base font-semibold text-white">{selected.customer}</span>
-                <div className="flex items-center gap-1.5 mt-1">
-                  <span className={`${CHANNEL_BADGE[selected.channel].cls}`}>
-                    {CHANNEL_BADGE[selected.channel].label}
-                  </span>
+          {selected ? (
+            <>
+              <div className="px-6 py-5 flex items-center justify-between flex-shrink-0" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                <div className="flex items-center gap-3.5">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={selected.avatar}
+                    alt={selected.customer}
+                    className="rounded-full object-cover flex-shrink-0"
+                    style={{ width: 44, height: 44, border: '2px solid rgba(129,140,248,0.35)' }}
+                  />
+                  <div>
+                    <span className="text-base font-semibold text-white">{selected.customer}</span>
+                    <div className="flex items-center gap-1.5 mt-1">
+                      <span className={`${(CHANNEL_BADGE[selected.channel] ?? CHANNEL_BADGE.web_form).cls}`}>
+                        {(CHANNEL_BADGE[selected.channel] ?? CHANNEL_BADGE.web_form).label}
+                      </span>
+                    </div>
+                  </div>
                 </div>
+                <span className={`${STATUS_BADGE[selected.status]}`}>{selected.status}</span>
               </div>
-            </div>
-            <span className={`${STATUS_BADGE[selected.status]}`}>{selected.status}</span>
-          </div>
 
-          <div className="flex-1 overflow-y-auto px-6 py-6 space-y-5">
-            {selected.messages.map((msg, i) => (
-              <div key={i} className={`flex ${msg.role === 'agent' ? 'justify-end' : 'justify-start'}`}>
-                <div
-                  className="max-w-[75%] px-5 py-4 rounded-2xl text-sm whitespace-pre-wrap leading-relaxed"
-                  style={
-                    msg.role === 'agent'
-                      ? {
-                          background: 'linear-gradient(135deg,rgba(124,58,237,0.8),rgba(59,130,246,0.6))',
-                          color: '#f1f5f9',
-                          borderBottomRightRadius: 4,
-                          boxShadow: '0 0 20px rgba(139,92,246,0.2)',
+              <div className="flex-1 overflow-y-auto px-6 py-6 space-y-5">
+                {selected.messages.length === 0 ? (
+                  <p className="text-sm text-center" style={{ color: 'rgba(255,255,255,0.2)', marginTop: 32 }}>No messages to display</p>
+                ) : (
+                  selected.messages.map((msg, i) => (
+                    <div key={i} className={`flex ${msg.role === 'agent' ? 'justify-end' : 'justify-start'}`}>
+                      <div
+                        className="max-w-[75%] px-5 py-4 rounded-2xl text-sm whitespace-pre-wrap leading-relaxed"
+                        style={
+                          msg.role === 'agent'
+                            ? {
+                                background: 'linear-gradient(135deg,rgba(124,58,237,0.8),rgba(59,130,246,0.6))',
+                                color: '#f1f5f9',
+                                borderBottomRightRadius: 4,
+                                boxShadow: '0 0 20px rgba(139,92,246,0.2)',
+                              }
+                            : {
+                                background: 'rgba(255,255,255,0.06)',
+                                border: '1px solid rgba(255,255,255,0.08)',
+                                color: '#d1d5db',
+                                borderBottomLeftRadius: 4,
+                              }
                         }
-                      : {
-                          background: 'rgba(255,255,255,0.06)',
-                          border: '1px solid rgba(255,255,255,0.08)',
-                          color: '#d1d5db',
-                          borderBottomLeftRadius: 4,
-                        }
-                  }
-                >
-                  {msg.content}
-                  <div className="text-xs mt-2 opacity-50">{msg.timestamp}</div>
-                </div>
+                      >
+                        {msg.content}
+                        <div className="text-xs mt-2 opacity-50">{msg.timestamp}</div>
+                      </div>
+                    </div>
+                  ))
+                )}
               </div>
-            ))}
-          </div>
+            </>
+          ) : (
+            <div className="flex flex-col items-center justify-center flex-1">
+              <MessageSquare size={40} style={{ color: 'rgba(255,255,255,0.08)', marginBottom: 14 }} />
+              <p className="text-sm font-semibold" style={{ color: 'rgba(255,255,255,0.2)' }}>Select a conversation</p>
+              <p className="text-xs mt-1" style={{ color: 'rgba(255,255,255,0.1)' }}>Choose one from the list to view details</p>
+            </div>
+          )}
         </div>
 
         {/* Send new message */}
