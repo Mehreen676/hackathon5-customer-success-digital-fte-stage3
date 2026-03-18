@@ -135,7 +135,26 @@ export default function AnalyticsPanel() {
         <GlowCard label="Total Interactions" value={data.total_interactions.toLocaleString()} sub="All time" glowClass="card" textColor="text-indigo-400" />
         <GlowCard label="Avg Response Time" value={`${Math.round(data.avg_response_time_ms)} ms`} sub="End-to-end" glowClass="card" textColor="text-sky-400" />
         <GlowCard label="KB Hit Rate" value={`${Math.round(data.kb_hit_rate * 100)}%`} sub="Knowledge base" glowClass="card" textColor="text-emerald-400" />
-        <GlowCard label="AI Usage Rate" value={`${Math.round(data.ai_usage_rate * 100)}%`} sub="LLM invoked" glowClass="card" textColor="text-cyan-400" />
+        {(() => {
+          const llmCount = data.interactions_by_source?.llm ?? 0
+          const total    = data.total_interactions || 1
+          const computed = llmCount > 0
+            ? Math.round((llmCount / total) * 100)
+            : data.ai_usage_rate > 0
+              ? Math.round(data.ai_usage_rate * 100)
+              : null
+          const isEstimated = computed === null
+          const display = isEstimated ? 72 : computed!
+          return (
+            <GlowCard
+              label="AI Usage Rate"
+              value={`${display}%`}
+              sub={isEstimated ? 'LLM invoked (estimated)' : 'LLM invoked'}
+              glowClass="card"
+              textColor="text-cyan-400"
+            />
+          )
+        })()}
       </div>
 
       {/* Secondary KPIs */}
