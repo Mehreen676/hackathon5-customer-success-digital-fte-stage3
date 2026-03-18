@@ -42,9 +42,11 @@ app_port: 7860
 
 ## Demo Video
 
+### 🎥 Watch Demo Video
+
 [![Watch Demo Video](https://img.youtube.com/vi/2E3PR6svbDQ/0.jpg)](https://youtu.be/2E3PR6svbDQ)
 
-A complete walkthrough of the Stage 3 Customer Success Digital FTE — demonstrating real-time multi-channel support (Web, WhatsApp, Gmail), AI-powered resolution, escalation handling, and the live analytics dashboard.
+A complete walkthrough of the Stage 3 Customer Success Digital FTE — showcasing real-time multi-channel support (Web, WhatsApp, Gmail), intelligent AI-driven resolution, automated escalation handling, and a live analytics dashboard simulating a production-ready SaaS support system.
 
 ---
 
